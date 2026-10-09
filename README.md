@@ -1,10 +1,35 @@
-# Cloudflare Service Admin Template
+# Tripp Tarot & Chat Service (Admin Portal)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AIKitLLC/cloudflare-admin-template)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AIKitLLC/tripp-admin)
 
-A production-ready, Cloudflare-native service admin template built with **Payload CMS v3**, **Next.js (App Router)**, **Cloudflare D1 (SQLite)**, and **Cloudflare R2** object storage.
+**Tripp Admin** là nền tảng quản trị dịch vụ và giao diện trải bài Tarot AI tiếng Việt, được xây dựng trên kiến trúc **Cloudflare Serverless Edge** dựa trên template [cloudflare-admin-template](https://github.com/AIKitLLC/cloudflare-admin-template).
 
-Designed as an extensible starter kit for building custom back-office portals, internal tools, and administrative dashboards on the Cloudflare serverless edge.
+Dự án kết hợp giữa **Payload CMS v3**, **Next.js (App Router)**, **Cloudflare D1 (SQLite)**, **Cloudflare R2**, và **Cloudflare Workers AI**.
+
+---
+
+## 🌟 Tính năng nổi bật
+
+### 1. Dịch vụ Trải bài & Đối thoại Tarot (`/` và `/api/tripp/*`)
+- **Bộ bài chuẩn 78 lá (Rider–Waite–Smith adaptation):** 22 lá Ẩn chính (Major Arcana) và 56 lá Ẩn phụ (Minor Arcana) với đầy đủ biểu tượng, ký tự glyph, nghĩa thuận và nghĩa ngược tiếng Việt / tiếng Anh.
+- **6 Kiểu trải bài đa dạng:**
+  - *Thông điệp hôm nay (Daily - 1 lá)*
+  - *Trải ba lá (Three-card spread - 3 lá: Quá khứ, Hiện tại, Bước tới)*
+  - *Tarot tình cảm (Love - 3 lá)*
+  - *Tarot công việc & tiền bạc (Money - 3 lá)*
+  - *Câu hỏi rõ - Yes / No (1 lá)*
+  - *Trải bài theo năm (Yearly - 12 lá)*
+- **Xáo bài ngẫu nhiên chuẩn mật mã:** Thuật toán Fisher–Yates với `crypto.getRandomValues()` loại bỏ thiên lệch modulo.
+- **Hội thoại phản tư:** Đối thoại nhiều lượt theo dõi tâm lý và nguồn lực của người dùng thay vì bói toán mê tín.
+
+### 2. Cổng Quản trị Dịch vụ Đầy Đủ (`/admin`)
+Hệ thống quản trị Payload CMS v3 hiện đại chạy trực tiếp trên Cloudflare D1:
+- **`Cards` (78 Lá Bài):** Biên tập ý nghĩa, biểu tượng, hình ảnh R2 cho từng lá bài.
+- **`Spreads` (Kiểu Trải Bài):** Quản lý định nghĩa vị trí, số lượng lá và mô tả các kiểu trải.
+- **`ContextFlows` (Cấu hình AI):** Quản lý pipeline prompt, tone giọng (warm, concise, supportive), độ sâu (brief, balanced, deep) và chỉ dẫn chất lượng của AI.
+- **`ReadingSessions` (Nhật ký Phiên):** Theo dõi lịch sử người dùng trải bài, câu hỏi, lá bài đã rút, lượng token tiêu thụ và mô hình AI xử lý.
+- **`AuditLogs` (Kiểm toán Hệ thống):** Ghi nhật ký mọi hành động của quản trị viên (chỉnh sửa lá bài, cập nhật flow, v.v.).
+- **`Users` (Quản lý Phân quyền):** Phân chia vai trò `owner`, `admin`, `editor`, `viewer`.
 
 ---
 
@@ -14,153 +39,88 @@ Designed as an extensible starter kit for building custom back-office portals, i
 - **Frontend / SSR:** [Next.js](https://nextjs.org) (App Router, React 19)
 - **Runtime:** [Cloudflare Workers](https://workers.cloudflare.com) via [@opennextjs/cloudflare](https://opennext.js.org/cloudflare)
 - **Database:** [Cloudflare D1](https://developers.cloudflare.com/d1/) (Serverless distributed SQLite with `@payloadcms/db-d1-sqlite`)
-- **Storage:** [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible asset storage via `@payloadcms/storage-r2`)
-- **Testing:** [Vitest](https://vitest.dev) & [Playwright](https://playwright.dev)
-
-> **Note:** Deploying Next.js via OpenNext on Cloudflare Workers currently requires the **Cloudflare Workers Paid** plan due to worker bundle size requirements (>3MB).
+- **Storage:** [Cloudflare R2](https://developers.cloudflare.com/r2/) (`@payloadcms/storage-r2`)
+- **AI Inference:** [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) (`@cf/qwen/qwen3-30b-a3b-fp8`)
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Hướng dẫn Cài đặt & Chạy Local
 
-### 1. Prerequisites
-
-- [Node.js](https://nodejs.org/) `>= 24.15.0`
-- [pnpm](https://pnpm.io/) `>= 9.x`
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
-
-### 2. Install Dependencies
+### 1. Cài đặt Dependencies
 
 ```bash
-git clone https://github.com/AIKitLLC/cloudflare-admin-template.git my-service-admin
-cd my-service-admin
+git clone https://github.com/AIKitLLC/tripp-admin.git
+cd tripp-admin
 pnpm install
 ```
 
-### 3. Local Development
-
-Authenticate Wrangler with your Cloudflare account:
-
-```bash
-pnpm wrangler login
-```
-
-Copy the example environment file:
+### 2. Cấu hình Môi trường
 
 ```bash
 cp .env.example .env
 ```
-
-Generate a random secret for `PAYLOAD_SECRET`:
-
+Tạo secret ngẫu nhiên cho `PAYLOAD_SECRET`:
 ```bash
 openssl rand -hex 32
 ```
 
-Start the local development server (Wrangler will emulate D1 and R2 locally):
+### 3. Chạy Development Server
 
+Đăng nhập Wrangler (nếu chưa):
+```bash
+pnpm wrangler login
+```
+
+Khởi chạy local (Wrangler sẽ giả lập D1 và R2 local):
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000/admin](http://localhost:3000/admin) to access the admin panel and create your initial administrator account.
+- **Giao diện Trải bài:** [http://localhost:3000](http://localhost:3000)
+- **Cổng Quản trị Admin:** [http://localhost:3000/admin](http://localhost:3000/admin)
 
----
+### 4. Khởi tạo Dữ liệu Ban đầu (Seed Cards & Spreads)
 
-## 🛠️ Project Structure
+Sau khi tạo tài khoản Admin đầu tiên tại `/admin`, bạn có thể gọi endpoint seed để nạp tự động 78 lá bài và 6 kiểu trải bài vào database D1:
 
-```text
-├── src/
-│   ├── app/                 # Next.js App Router (Admin & API endpoints)
-│   ├── collections/         # Payload Collection definitions
-│   │   ├── Users.ts         # User authentication collection
-│   │   └── Media.ts         # Asset upload collection (R2)
-│   ├── migrations/          # D1 database migrations
-│   ├── payload.config.ts    # Main Payload CMS configuration & bindings
-│   └── payload-types.ts     # Auto-generated TypeScript types
-├── tests/                   # Integration and E2E test suites
-├── wrangler.jsonc           # Cloudflare Workers, D1 & R2 configuration
-├── open-next.config.ts      # OpenNext build adapter configuration
-└── package.json
+```bash
+curl -X POST http://localhost:3000/api/tripp/seed
 ```
 
 ---
 
-## 📦 Adding Custom Service Collections
+## 📡 API Endpoints
 
-Define your collections using TypeScript code in `src/collections/`:
-
-```typescript
-import type { CollectionConfig } from 'payload'
-
-export const Customers: CollectionConfig = {
-  slug: 'customers',
-  admin: {
-    useAsTitle: 'name',
-  },
-  access: {
-    read: ({ req: { user } }) => Boolean(user),
-  },
-  fields: [
-    { name: 'name', type: 'text', required: true },
-    { name: 'email', type: 'email', required: true, unique: true },
-    { name: 'status', type: 'select', options: ['active', 'suspended'], defaultValue: 'active' },
-  ],
-}
-```
-
-Add your collection to `src/payload.config.ts`:
-
-```typescript
-import { Customers } from './collections/Customers'
-
-export default buildConfig({
-  collections: [Users, Media, Customers],
-  // ...
-})
-```
-
-Generate updated TypeScript types:
-
-```bash
-pnpm generate:types
-```
+| Endpoint | Method | Mô tả |
+| :--- | :--- | :--- |
+| `/api/tripp/reading` | `POST` | Bốc bài và nhận phân tích trải bài ban đầu |
+| `/api/tripp/chat` | `POST` | Gửi câu hỏi đối thoại tiếp theo trong phiên |
+| `/api/tripp/cards` | `GET` | Danh sách 78 lá bài Tarot |
+| `/api/tripp/spreads` | `GET` | Danh sách các kiểu trải bài |
+| `/api/tripp/status` | `GET` | Trạng thái dịch vụ |
+| `/api/tripp/seed` | `POST` | Nạp dữ liệu mặc định vào database |
+| `/api/cards`, `/api/spreads`... | `GET/POST` | Auto-generated Payload CMS REST APIs |
 
 ---
 
-## 🚢 Deployment
+## 🚢 Triển khai lên Cloudflare Workers
 
-### 1. Create Cloudflare Resources
-
-Create your D1 Database:
+1. Tạo database D1:
 ```bash
-pnpm wrangler d1 create <YOUR_DATABASE_NAME>
+pnpm wrangler d1 create tripp-admin
 ```
 
-Create your R2 Bucket:
+2. Tạo bucket R2:
 ```bash
-pnpm wrangler r2 bucket create <YOUR_BUCKET_NAME>
+pnpm wrangler r2 bucket create tripp-admin
 ```
 
-Update `wrangler.jsonc` with your D1 `database_id` and R2 bucket name.
+3. Cập nhật `database_id` trong `wrangler.jsonc`.
 
-### 2. Run Database Migrations & Deploy
-
+4. Chạy migration và deploy:
 ```bash
 pnpm payload migrate:create
 pnpm run deploy
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run unit & integration tests
-pnpm test:int
-
-# Run end-to-end Playwright tests
-pnpm test:e2e
 ```
 
 ---

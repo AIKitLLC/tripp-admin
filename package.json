@@ -1,7 +1,7 @@
 {
-  "name": "cloudflare-admin-template",
+  "name": "tripp-admin",
   "version": "1.0.0",
-  "description": "Cloudflare-native service admin template built with Payload CMS v3, Next.js, Cloudflare D1 (SQLite), and R2 storage.",
+  "description": "Tripp Tarot & Chat Service with Cloudflare-native Payload CMS v3 Admin Portal, D1, and R2.",
   "license": "MIT",
   "type": "module",
   "scripts": {

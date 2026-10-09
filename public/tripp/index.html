@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#faf7f2">
+  <meta name="description" content="TRIPP — Một chút dịu dàng, một góc nhìn mới."><title>TRIPP — Một góc nhìn mới</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23704e66'/%3E%3Cpath d='m16 6 3 7 7 3-7 3-3 7-3-7-7-3 7-3z' fill='%23faf7f2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="chat-header">
+      <div class="brand-block"><a class="brand" href="/" aria-label="TRIPP"><span aria-hidden="true">✦</span> TRIPP</a><small id="build-info" data-testid="build-info" class="build-info" hidden></small></div>
+      <div class="header-controls"><label class="visually-hidden" for="language">Ngôn ngữ / Language</label><select id="language" aria-label="Ngôn ngữ / Language"><option value="vi">Tiếng Việt</option><option value="en">English</option></select>
+        <div class="menu-wrap"><button id="menu-button" class="menu-button" type="button" aria-label="Tùy chọn trò chuyện" aria-controls="chat-menu" aria-expanded="false"><span aria-hidden="true">···</span></button>
+          <div id="chat-menu" class="chat-menu" hidden><button id="privacy-button" class="menu-item" type="button">Hồ sơ &amp; quyền riêng tư</button><button id="new-button" class="menu-item" type="button">Một trải bài mới</button><button id="reset-button" data-testid="reset-button" class="menu-item" type="button">Xóa hồ sơ &amp; cuộc trò chuyện</button></div>
+        </div>
+      </div>
+    </header>
+    <main class="chat-main">
+      <div class="conversation-scroll" id="conversation-scroll">
+        <section class="empty-state" id="empty-state" aria-labelledby="welcome-title"><div class="welcome-mark" aria-hidden="true">✦</div><p id="welcome-eyebrow" class="welcome-eyebrow">MỘT KHOẢNG NHỎ CHO BẠN</p><h1 id="welcome-title">Một chút dịu dàng,<br>một góc nhìn mới.</h1><p id="welcome-description" class="welcome-description">Bạn mang theo câu hỏi. Mình cùng lắng nghe.<br>Tarot là một cách suy ngẫm, không phải lời hứa về tương lai.</p></section>
+        <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Cuộc trò chuyện"></div>
+        <section id="step-panel" data-testid="step-panel" class="step-panel" tabindex="-1" aria-label="Bước tiếp theo" aria-busy="true"></section><p id="flow-status" class="flow-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="composer-area"><section id="quick-options" data-testid="quick-options" class="quick-options" aria-labelledby="quick-options-label" hidden><p id="quick-options-label" class="quick-options-label">Chọn một gợi ý hoặc tự viết bên dưới</p><div id="quick-options-list" class="quick-options-list"></div></section><form id="chat-form" class="chat-form" novalidate><label class="visually-hidden" for="message-input">Tin nhắn của bạn</label><textarea id="message-input" data-testid="message-input" name="message" rows="1" maxlength="600" placeholder="Điều gì đang ở trong lòng bạn?" aria-describedby="privacy-note form-error"></textarea><button id="send-button" data-testid="send-button" type="submit" aria-label="Gửi tin nhắn"><span aria-hidden="true">↑</span></button></form>
+        <div id="error-panel" class="error-panel" hidden><p id="form-error" class="form-error" role="alert"></p><button id="retry-button" data-testid="retry-button" class="text-button" type="button" hidden>Thử lại</button><button id="cancel-retry" class="text-button" type="button" hidden>Dừng</button></div>
+        <p id="privacy-note" class="privacy-note">Hồ sơ và tin nhắn có thể gửi tới Cloudflare Workers AI; khi dùng GPT-6 Luna, dữ liệu cũng được gửi tới OpenAI qua Cloudflare AI Gateway. Phiên được giữ tối đa 24 giờ; bạn có thể xóa bất cứ lúc nào.</p>
+      </div>
+    </main>
+    <dialog id="privacy-dialog" aria-labelledby="privacy-title"><form method="dialog"><button class="dialog-close" aria-label="Đóng / Close">×</button></form><h2 id="privacy-title">Bạn biết mình đang chia sẻ gì</h2><div id="privacy-content"></div></dialog>
+    <dialog id="reset-dialog" aria-labelledby="reset-title"><h2 id="reset-title">Xóa phiên này?</h2><p id="reset-description">Hồ sơ, ngày sinh, bài đã rút và nội dung trò chuyện sẽ được xóa. Số lượt đã dùng và mã kỹ thuật không chứa nội dung vẫn giữ.</p><div class="button-row"><button id="reset-cancel" class="secondary-button" type="button">Giữ lại</button><button id="reset-confirm" data-testid="reset-confirm" class="primary-button" type="button">Xóa phiên</button></div></dialog>
+  </div>
+</body>
+</html>
