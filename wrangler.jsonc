@@ -15,6 +15,7 @@
     "binding": "AI",
   },
   "vars": {
+    "PAYLOAD_SECRET": "ed57ca7b8980ede524ce10941d8b30d282cb8f0b273db5017fb0c634010fbd4d",
     "AI_ENABLED": "true",
     "REPLY_MODEL": "@cf/qwen/qwen3-30b-a3b-fp8",
     "ADMIN_ENABLED": "true",
@@ -26,17 +27,16 @@
   "d1_databases": [
     {
       "binding": "D1",
-      "database_id": "DATABASE_ID",
+      "database_id": "f9a0461c-b918-4f53-8261-5f25bca2db1a",
       "database_name": "tripp-admin",
       "remote": true,
     },
   ],
   "services": [
-    // The service should match the "name" of your worker
-    // {
-    //   "binding": "WORKER_SELF_REFERENCE",
-    //   "service": "my-app"
-    // },
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "tripp-admin",
+    },
   ],
   "r2_buckets": [
     {

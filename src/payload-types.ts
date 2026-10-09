@@ -69,6 +69,11 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    cards: Card;
+    spreads: Spread;
+    'context-flows': ContextFlow;
+    'reading-sessions': ReadingSession;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,6 +83,11 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    cards: CardsSelect<false> | CardsSelect<true>;
+    spreads: SpreadsSelect<false> | SpreadsSelect<true>;
+    'context-flows': ContextFlowsSelect<false> | ContextFlowsSelect<true>;
+    'reading-sessions': ReadingSessionsSelect<false> | ReadingSessionsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -123,6 +133,13 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
+  role: 'owner' | 'admin' | 'editor' | 'viewer';
+  status?: ('active' | 'suspended') | null;
+  /**
+   * Telegram ID cho admin bot (nếu tích hợp)
+   */
+  telegramId?: string | null;
+  lastLoginAt?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -161,6 +178,230 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cards".
+ */
+export interface Card {
+  id: number;
+  /**
+   * Mã số lá bài (0 - 77)
+   */
+  cardId: number;
+  /**
+   * Tên lá bài tiếng Việt (ví dụ: Kẻ Lữ Hành, Nhà Kiến Tạo)
+   */
+  name: string;
+  /**
+   * Tên lá bài tiếng Anh (ví dụ: The Fool, The Magician)
+   */
+  english: string;
+  arcana: 'major' | 'minor';
+  suit?: ('wands' | 'cups' | 'swords' | 'pentacles') | null;
+  rank?:
+    | (
+        | 'ace'
+        | 'two'
+        | 'three'
+        | 'four'
+        | 'five'
+        | 'six'
+        | 'seven'
+        | 'eight'
+        | 'nine'
+        | 'ten'
+        | 'page'
+        | 'knight'
+        | 'queen'
+        | 'king'
+      )
+    | null;
+  /**
+   * Ký tự biểu tượng (ví dụ: ✧, ✦, ☾)
+   */
+  glyph?: string | null;
+  /**
+   * Ý nghĩa thuận tiếng Việt
+   */
+  upright?: string | null;
+  /**
+   * Ý nghĩa ngược tiếng Việt
+   */
+  reversed?: string | null;
+  uprightEnglish?: string | null;
+  reversedEnglish?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spreads".
+ */
+export interface Spread {
+  id: number;
+  spreadId: 'daily' | 'three' | 'love' | 'money' | 'yes_no' | 'yearly';
+  /**
+   * Tên kiểu trải bài tiếng Việt
+   */
+  name: string;
+  nameEnglish: string;
+  description?: string | null;
+  descriptionEnglish?: string | null;
+  cardCount: number;
+  /**
+   * Cấu hình chi tiết các vị trí lá bài trong trải (mảng positions)
+   */
+  positions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "context-flows".
+ */
+export interface ContextFlow {
+  id: number;
+  name: string;
+  branch:
+    | 'conversation'
+    | 'new_reading_offer'
+    | 'interpret'
+    | 'extra_interpret'
+    | 'knowledge'
+    | 'practical'
+    | 'clarify_reading'
+    | 'suggest_spread'
+    | 'supplement'
+    | 'emotional_support'
+    | 'new_topic';
+  status: 'published' | 'draft' | 'archived';
+  revision?: number | null;
+  tone?: ('warm' | 'concise' | 'supportive') | null;
+  depth?: ('brief' | 'balanced' | 'deep') | null;
+  /**
+   * Chỉ dẫn chất lượng câu trả lời từ chủ sở hữu (Owner instructions)
+   */
+  ownerQualityInstructions?: string | null;
+  /**
+   * Chỉ dẫn bổ sung từ tester/biên tập viên (Tester instructions)
+   */
+  testerQualityInstructions?: string | null;
+  /**
+   * Cấu hình chi tiết các node trong Context Flow pipeline
+   */
+  nodes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reading-sessions".
+ */
+export interface ReadingSession {
+  id: number;
+  /**
+   * Mã phiên đọc bài (UUID hoặc Opaque string)
+   */
+  sessionId: string;
+  /**
+   * Câu hỏi hoặc tâm sự của người dùng
+   */
+  question?: string | null;
+  /**
+   * Kiểu trải bài đã chọn (daily, three, love, etc.)
+   */
+  spreadId?: string | null;
+  /**
+   * Danh sách các lá bài đã bốc kèm chiều thuận/ngược
+   */
+  drawnCards?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Số lượt trò chuyện trong phiên
+   */
+  turns?: number | null;
+  /**
+   * Mô hình AI đã xử lý lượt đọc bài
+   */
+  model?: string | null;
+  /**
+   * Thống kê lượng token sử dụng (input/output)
+   */
+  tokenUsage?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('active' | 'completed' | 'abandoned' | 'flagged') | null;
+  language?: string | null;
+  /**
+   * IP nguồn (ẩn danh/hash)
+   */
+  clientIp?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: number;
+  /**
+   * Tên hành động (ví dụ: LOGIN, FLOW_UPDATE, CARD_EDIT)
+   */
+  action: string;
+  /**
+   * Người thực hiện (Email hoặc User ID)
+   */
+  actor: string;
+  /**
+   * Đối tượng bị tác động (ID, Collection, etc.)
+   */
+  target?: string | null;
+  /**
+   * Chi tiết thông số hoặc thay đổi
+   */
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  ipAddress?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -190,6 +431,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'cards';
+        value: number | Card;
+      } | null)
+    | ({
+        relationTo: 'spreads';
+        value: number | Spread;
+      } | null)
+    | ({
+        relationTo: 'context-flows';
+        value: number | ContextFlow;
+      } | null)
+    | ({
+        relationTo: 'reading-sessions';
+        value: number | ReadingSession;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: number | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -238,6 +499,10 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  role?: T;
+  status?: T;
+  telegramId?: T;
+  lastLoginAt?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -270,6 +535,88 @@ export interface MediaSelect<T extends boolean = true> {
   filesize?: T;
   width?: T;
   height?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cards_select".
+ */
+export interface CardsSelect<T extends boolean = true> {
+  cardId?: T;
+  name?: T;
+  english?: T;
+  arcana?: T;
+  suit?: T;
+  rank?: T;
+  glyph?: T;
+  upright?: T;
+  reversed?: T;
+  uprightEnglish?: T;
+  reversedEnglish?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spreads_select".
+ */
+export interface SpreadsSelect<T extends boolean = true> {
+  spreadId?: T;
+  name?: T;
+  nameEnglish?: T;
+  description?: T;
+  descriptionEnglish?: T;
+  cardCount?: T;
+  positions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "context-flows_select".
+ */
+export interface ContextFlowsSelect<T extends boolean = true> {
+  name?: T;
+  branch?: T;
+  status?: T;
+  revision?: T;
+  tone?: T;
+  depth?: T;
+  ownerQualityInstructions?: T;
+  testerQualityInstructions?: T;
+  nodes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reading-sessions_select".
+ */
+export interface ReadingSessionsSelect<T extends boolean = true> {
+  sessionId?: T;
+  question?: T;
+  spreadId?: T;
+  drawnCards?: T;
+  turns?: T;
+  model?: T;
+  tokenUsage?: T;
+  status?: T;
+  language?: T;
+  clientIp?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  action?: T;
+  actor?: T;
+  target?: T;
+  details?: T;
+  ipAddress?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

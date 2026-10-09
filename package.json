@@ -5,10 +5,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" payload build",
+    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
     "deploy": "pnpm run deploy:database && pnpm run deploy:app",
     "deploy:app": "opennextjs-cloudflare build --env=$CLOUDFLARE_ENV && opennextjs-cloudflare deploy --env=$CLOUDFLARE_ENV",
-    "deploy:database": "cross-env NODE_ENV=production PAYLOAD_SECRET=ignore payload migrate && wrangler d1 execute D1 --command 'PRAGMA optimize' --env=$CLOUDFLARE_ENV --remote",
+    "deploy:database": "cross-env NODE_ENV=production PAYLOAD_SECRET=ignore payload migrate && wrangler d1 execute tripp-admin --command 'PRAGMA optimize' --remote",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "devsafe": "rm -rf .next && rm -rf .open-next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
@@ -65,7 +65,10 @@
       "sharp",
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "@opennextjs/cloudflare@1.20.9": "patches/@opennextjs__cloudflare@1.20.9.patch"
+    }
   },
   "cloudflare": {
     "bindings": {

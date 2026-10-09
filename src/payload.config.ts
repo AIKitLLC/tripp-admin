@@ -57,13 +57,13 @@ export default buildConfig({
   },
   collections: [Users, Media, Cards, Spreads, ContextFlows, ReadingSessions, AuditLogs],
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: process.env.PAYLOAD_SECRET || (cloudflare.env as any).PAYLOAD_SECRET || 'ed57ca7b8980ede524ce10941d8b30d282cb8f0b273db5017fb0c634010fbd4d',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: sqliteD1Adapter({ binding: cloudflare.env.D1 }),
   logger: isProduction ? cloudflareLogger : undefined,
-  storage: [
+  plugins: [
     r2Storage({
       bucket: cloudflare.env.R2,
       collections: { media: true },
