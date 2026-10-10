@@ -1,0 +1,10 @@
+---
+description: Module boundaries for tripp-admin. Map is docs/ARCHITECTURE.md.
+alwaysApply: true
+---
+
+Decouple at real boundaries (domain modules, adapters for external services, platform bindings). No speculative abstractions or single-implementation interfaces.
+
+Modules talk through explicit public entry points. No deep imports across modules.
+
+Current map and target boundaries: `docs/ARCHITECTURE.md`. Reconcile this with ponytail (`.agents/skills/ponytail/SKILL.md`): smallest change that solves the task, and no new layer nobody asked for.

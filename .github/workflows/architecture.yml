@@ -1,0 +1,28 @@
+# Report-only architecture drift. Action pin is arcade-agent v0.4.1
+# (commit 2fde72bcf6cd1f861b8f25b09c0a1d7bc83b820d). PyPI package is pinned
+# separately via arcade-agent-version. Logs are the report: this token is
+# read-only, so the job does not comment or upload artifacts.
+name: Architecture
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    name: arcade-agent report
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Analyze architecture
+        continue-on-error: true
+        uses: arcade-agent/arcade-agent/actions/analyze@2fde72bcf6cd1f861b8f25b09c0a1d7bc83b820d
+        with:
+          arcade-agent-version: "0.4.1"
+          language: typescript
+          post-pr-comment: "false"
+          upload-artifacts: "false"
+          store-baseline-on-push: "false"
