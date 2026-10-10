@@ -10,7 +10,7 @@ Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default bra
 | --- | --- |
 | Open issues | None. |
 | Closed issues | None. |
-| Open pull requests | None, before the standards PR that adds this file. |
+| Open pull requests | [#1](https://github.com/AIKitLLC/tripp-admin/pull/1) `cursor/adopt-dev-standards-84cd` — adopt Tony's dev standards. No `Closes #N` yet: the standards issue is proposed below and was not created (403). |
 | Milestones | None. |
 | Labels | GitHub defaults only: `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`. |
 
