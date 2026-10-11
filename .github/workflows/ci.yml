@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    name: install, lint, typecheck, int tests, build
+    name: install, lint, typecheck, int tests, build, opennext
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -69,3 +69,21 @@ jobs:
             exit 1
           fi
           PAYLOAD_SECRET="$secret" pnpm run build
+
+      - name: OpenNext bundle
+        run: |
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}${CLOUDFLARE_API_KEY:-}${CF_API_TOKEN:-}${WRANGLER_API_TOKEN:-}" ]; then
+            echo "A Cloudflare token is present. Refusing to build with it." >&2
+            exit 1
+          fi
+          unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_ACCOUNT_ID CF_API_TOKEN WRANGLER_API_TOKEN
+          secret="$(openssl rand -hex 32)"
+          if [ "${#secret}" -lt 32 ]; then
+            echo "Throwaway PAYLOAD_SECRET was shorter than 32 characters." >&2
+            exit 1
+          fi
+          PAYLOAD_SECRET="$secret" pnpm exec opennextjs-cloudflare build
+          if ! grep -R -q 'process.env.NEXT_PHASE' .open-next; then
+            echo "The OpenNext bundle does not read NEXT_PHASE at runtime." >&2
+            exit 1
+          fi
