@@ -1,26 +1,24 @@
 # Status
 
-Last updated: 2026-10-10. Update this file in the same PR as every change.
+Last updated: 2026-10-11. Update this file in the same PR as every change.
 
-Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default branch is `main`. Latest product commit on `main` is `ed88d14` (2026-10-08, Next 16 Turbopack build and Cloudflare Workers deploy).
+Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default branch is `main`. Latest product commit on `main` is `ed88d14` (2026-10-08, Next 16 Turbopack build and Cloudflare Workers deploy). This branch was already based on that commit; there was nothing to rebase.
 
 ## GitHub now
 
 | Kind | State |
 | --- | --- |
-| Open issues | None. |
+| Open issues | #2 standards (labels set, no milestone). #3 secret, #4 template shell, #5 seed route, #6 `ignoreBuildErrors`, #7 reading engine, #8 static client (labels set, no milestone). #10 Users access lockdown (no labels, no milestone). |
 | Closed issues | None. |
-| Open pull requests | [#1](https://github.com/AIKitLLC/tripp-admin/pull/1) `cursor/adopt-dev-standards-84cd` — adopt Tony's dev standards. No `Closes #N` yet: the standards issue is proposed below and was not created (403). |
-| Milestones | None. |
-| Labels | GitHub defaults only: `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`. |
-
-No open PR links an issue, because there are no open PRs and no issues. Nothing was closed or rewritten.
+| Open pull requests | [#1](https://github.com/AIKitLLC/tripp-admin/pull/1) closes #2. [#9](https://github.com/AIKitLLC/tripp-admin/pull/9) closes #3 and #5. |
+| Milestones | None. `M1 Foundation` and `M2 Reading service` are still only proposed below. |
+| Labels | GitHub defaults plus the `type:*`, `area:*`, `status:*`, and `priority:*` labels from the table below. None were deleted. |
 
 ## Known blockers
 
-1. This agent's GitHub token cannot create labels, milestones, or issues. `gh label create` returned `HTTP 403: Resource not accessible by integration` on `https://api.github.com/repos/AIKitLLC/tripp-admin/labels`. The tracking setup below is the proposal, not applied state. Do not treat it as live GitHub data.
+1. Milestones were not created, and no issue is assigned to one. #10 has no labels.
 2. The live reading and chat routes do not call the domain engine or Workers AI. See `docs/ARCHITECTURE.md`.
-3. A Payload secret is stored in `wrangler.jsonc` `vars` and as a fallback in `src/payload.config.ts`. This file does not repeat the value. Moving it is a product change and is not part of the standards PR.
+3. A Payload secret is still in the tree on `main`. [#9](https://github.com/AIKitLLC/tripp-admin/pull/9) removes it. This file does not repeat the value. CI generates a throwaway `PAYLOAD_SECRET` and does not read that value.
 
 ## Rule
 
@@ -28,7 +26,7 @@ Every later PR updates this file: open issues, open PRs with the issues they clo
 
 ## Tracking setup
 
-Not created. Token returned 403. Existing labels were not deleted. No probe issue was filed.
+Labels and issues #2–#8 now exist on GitHub. This agent's token got HTTP 403 on `gh label create` on 2026-10-10; the rows below are the set that was proposed then. Milestones are still missing. Issue #10 was opened later and is not in this list.
 
 ### Labels to create
 
@@ -58,7 +56,7 @@ Not created. Token returned 403. Existing labels were not deleted. No probe issu
 
 ### Milestones to create
 
-No open issues existed to cluster, so the set follows the two gaps already in the tree.
+Still not created. No open issues existed when this set was chosen. Assign the issues below when the milestones exist. #10 is not in this set.
 
 | Milestone | Goal |
 | --- | --- |
@@ -67,7 +65,7 @@ No open issues existed to cluster, so the set follows the two gaps already in th
 
 ### Issue to label and milestone
 
-No existing issues, so this table is the assignment to apply when the issues below are created. Do not close them from this PR.
+Issues #2–#8 exist and already have the labels in this table. They have no milestone. Do not close them from this PR except #2, which this PR closes.
 
 | Proposed issue | Milestone | Labels |
 | --- | --- | --- |
@@ -83,7 +81,7 @@ The static-client issue stays `status:blocked` until the reading-engine issue ch
 
 ### Issues to create
 
-Searched the tree for `TODO` and `FIXME` (none in app code; only generated queue fields in `cloudflare-env.d.ts`) and searched GitHub issues (none). README has no separate roadmap list. These are the gaps that have no issue yet. One line is the body to paste.
+These seven were opened as #2–#8. The bodies below are the originals. #10 was filed later and is separate.
 
 1. **Adopt Tony's dev standards.** Body: Add AGENTS.md, vendored ponytail and i-have-adhd skills, Cursor rules, architecture and status docs, and report-only arcade-agent CI. The standards PR closes this issue.
 2. **Stop shipping the Payload secret in the repo.** Body: `wrangler.jsonc` vars and the fallback in `src/payload.config.ts` contain a Payload secret; move it to a secret binding and rotate it, without printing the value.

@@ -6,6 +6,7 @@ name: Architecture
 
 on:
   pull_request:
+  push:
 
 permissions:
   contents: read
@@ -15,6 +16,7 @@ jobs:
   analyze:
     name: arcade-agent report
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     steps:
       - name: Analyze architecture

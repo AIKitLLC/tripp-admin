@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import React, { useState } from 'react'
 
 interface DrawnCard {
@@ -100,12 +101,12 @@ export default function TrippChatClient() {
           <p style={{ margin: '0.4rem 0 0', color: '#6b7280', fontSize: '0.95rem' }}>Dịch vụ trải bài & đối thoại phản tư AI trên Cloudflare Edge</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <a
+          <Link
             href="/admin"
             style={{ padding: '0.5rem 1rem', backgroundColor: '#111827', color: '#ffffff', borderRadius: '6px', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}
           >
             Quản trị Admin Panel ↗
-          </a>
+          </Link>
         </div>
       </header>
 
