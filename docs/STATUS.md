@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-11. Update this file in the same PR as every change. CI on this branch now also builds with `pnpm run build` and rejects added lines in `ci/tsc-baseline.txt` against the PR base.
+Last updated: 2026-10-11. Update this file in the same PR as every change. CI on this branch builds with `pnpm run build` (`next build` only), rejects added lines in `ci/tsc-baseline.txt`, and runs `node --test scripts/baseline-ratchet.test.mjs` to prove that rejection. CODEOWNERS requests Tony's review and blocks nothing until he requires code-owner review on `main`.
 
 Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default branch is `main`. Latest product commit on `main` is `ed88d14` (2026-10-08, Next 16 Turbopack build and Cloudflare Workers deploy). This branch was already based on that commit; there was nothing to rebase.
 

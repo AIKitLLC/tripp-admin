@@ -35,6 +35,9 @@ jobs:
           node-version: 24.15.0
           cache: pnpm
 
+      - name: Baseline ratchet fixture
+        run: node --test scripts/baseline-ratchet.test.mjs
+
       - name: Install
         run: pnpm install --frozen-lockfile
 
