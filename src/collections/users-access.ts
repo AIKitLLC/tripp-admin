@@ -35,6 +35,16 @@ async function countUsers(req: PayloadRequest): Promise<number> {
   return result.totalDocs
 }
 
+async function countOwners(req: PayloadRequest): Promise<number> {
+  const result = await req.payload.count({
+    collection: 'users',
+    where: { role: { equals: 'owner' } },
+    overrideAccess: true,
+    req,
+  })
+  return result.totalDocs
+}
+
 function normalizeEmail(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const normalized = value.trim().toLowerCase()
@@ -61,18 +71,30 @@ function ownRecordOrPrivileged(req: PayloadRequest): boolean | { id: { equals: n
 
 export const usersReadAccess: Access = ({ req }) => ownRecordOrPrivileged(req)
 
-export const usersUpdateAccess: Access = ({ req }) => ownRecordOrPrivileged(req)
+export const usersUpdateAccess: Access = ({ req }) => {
+  const user = req.user
+  const role = actorRole(user)
+  if (!user || !role) return false
+  if (role === 'owner') return true
+  if (role === 'admin') {
+    return {
+      or: [{ id: { equals: user.id } }, { role: { not_equals: 'owner' } }],
+    }
+  }
+  return { id: { equals: user.id } }
+}
 
 export const usersCreateAccess: Access = async ({ req }) => {
   if ((await countUsers(req)) === 0) return true
   return isPrivileged(actorRole(req.user))
 }
 
-export const usersDeleteAccess: Access = ({ req }) => {
+export const usersDeleteAccess: Access = async ({ req }) => {
   const role = actorRole(req.user)
-  if (role === 'owner') return true
   if (role === 'admin') return { role: { not_equals: 'owner' } }
-  return false
+  if (role !== 'owner') return false
+  if ((await countOwners(req)) <= 1) return { role: { not_equals: 'owner' } }
+  return true
 }
 
 export const roleFieldCreateAccess: FieldAccess = async ({ data, req }) => {
@@ -88,11 +110,15 @@ export const roleFieldCreateAccess: FieldAccess = async ({ data, req }) => {
   return false
 }
 
-export const roleFieldUpdateAccess: FieldAccess = ({ data, doc, id, req }) => {
+export const roleFieldUpdateAccess: FieldAccess = async ({ data, doc, id, req }) => {
   const nextRole = data && 'role' in data ? data.role : undefined
   const currentRole = doc && 'role' in doc ? doc.role : undefined
   if (nextRole === undefined || nextRole === currentRole) {
     return isPrivileged(actorRole(req.user))
+  }
+
+  if (currentRole === 'owner' && nextRole !== 'owner' && (await countOwners(req)) <= 1) {
+    throw new Forbidden()
   }
 
   if (isSameUser(req.user, id ?? doc?.id)) throw new Forbidden()
@@ -115,6 +141,16 @@ export const enforceUserPrivileges: CollectionBeforeChangeHook = async ({
 }) => {
   if (operation === 'create' && (await countUsers(req)) === 0) {
     return { ...data, role: 'owner' }
+  }
+
+  if (
+    operation === 'update' &&
+    originalDoc?.role === 'owner' &&
+    data?.role !== undefined &&
+    data.role !== 'owner' &&
+    (await countOwners(req)) <= 1
+  ) {
+    throw new Forbidden()
   }
 
   if (operation === 'update' && originalDoc?.role === 'owner' && actorRole(req.user) === 'admin') {

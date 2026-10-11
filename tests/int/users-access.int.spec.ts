@@ -327,6 +327,29 @@ describe('Users collection access', () => {
       expect(replaced.status).not.toBe(200)
     })
 
+    it('refuses an admin changing an owner status', async () => {
+      const before = await payload.findByID({
+        collection: 'users',
+        id: owner.id,
+        overrideAccess: true,
+      })
+
+      const response = await restPatch(
+        jsonRequest(`/api/users/${owner.id}`, { status: 'suspended' }, adminToken, 'PATCH'),
+        slugArgs(['users', String(owner.id)]),
+      )
+      expect(response.status).toBe(403)
+
+      const after = await payload.findByID({
+        collection: 'users',
+        id: owner.id,
+        overrideAccess: true,
+      })
+      expect(after.status).toBe(before.status)
+      expect(after.role).toBe('owner')
+      expect(after.email).toBe(ownerEmail)
+    })
+
     it('refuses an admin changing an owner email or deleting an owner', async () => {
       const emailChange = await restPatch(
         jsonRequest(`/api/users/${owner.id}`, { email: 'access-taken-over@example.com' }, adminToken, 'PATCH'),
@@ -344,6 +367,57 @@ describe('Users collection access', () => {
       )
       expect(deleted.status).toBe(403)
       expect((await storedUser(owner.id)).email).toBe(ownerEmail)
+    })
+
+    it('refuses a role change that would leave no owners', async () => {
+      const second = await payload.create({
+        collection: 'users',
+        data: { email: 'access-second-owner@example.com', password, role: 'owner' },
+        overrideAccess: true,
+      })
+      expect(second.role).toBe('owner')
+
+      const demoted = await restPatch(
+        jsonRequest(`/api/users/${second.id}`, { role: 'editor' }, ownerToken, 'PATCH'),
+        slugArgs(['users', String(second.id)]),
+      )
+      expect(demoted.status).toBe(200)
+      expect((await storedUser(second.id)).role).toBe('editor')
+
+      const lastOwner = await restPatch(
+        jsonRequest(`/api/users/${owner.id}`, { role: 'admin' }, ownerToken, 'PATCH'),
+        slugArgs(['users', String(owner.id)]),
+      )
+      expect(lastOwner.status).toBe(403)
+      expect((await storedUser(owner.id)).role).toBe('owner')
+    })
+
+    it('refuses a delete that would leave no owners', async () => {
+      const second = await payload.create({
+        collection: 'users',
+        data: { email: 'access-extra-owner@example.com', password, role: 'owner' },
+        overrideAccess: true,
+      })
+      const removedOther = await restDelete(
+        new Request(`http://localhost:3000/api/users/${second.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `JWT ${ownerToken}` },
+        }),
+        slugArgs(['users', String(second.id)]),
+      )
+      expect(removedOther.status).toBe(200)
+
+      const removedOwner = await restDelete(
+        new Request(`http://localhost:3000/api/users/${owner.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `JWT ${ownerToken}` },
+        }),
+        slugArgs(['users', String(owner.id)]),
+      )
+      expect(removedOwner.status).toBe(403)
+      const remaining = await storedUser(owner.id)
+      expect(remaining.role).toBe('owner')
+      expect(remaining.email).toBe(ownerEmail)
     })
   })
 })
