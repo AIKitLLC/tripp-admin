@@ -141,6 +141,8 @@ Dán giá trị mới khi Wrangler hỏi. Không dùng lại giá trị cũ. Xoa
 pnpm wrangler secret put OWNER_EMAIL
 ```
 
+Đăng ký công khai vẫn mở. Ngay sau khi secret được đặt, tạo tài khoản với đúng email đó trước khi chia sẻ URL. Người đăng ký trùng email trước sẽ thành owner và chặn đăng ký sau (email là duy nhất). Đổi email của một viewer sang địa chỉ đó không cấp role owner, nhưng cũng chiếm địa chỉ và chặn đăng ký owner.
+
 6. Chạy migration và deploy:
 ```bash
 pnpm payload migrate:create

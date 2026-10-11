@@ -1,3 +1,5 @@
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+
 import { getPayload, type Payload } from 'payload'
 import config from '@/payload.config'
 import {
@@ -160,6 +162,118 @@ function graphqlWasRefused(status: number, body: GraphqlBody): boolean {
   })
 }
 
+function headerValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0]
+  return value
+}
+
+async function readIncomingBody(incoming: IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const chunk of incoming) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks)
+}
+
+async function forwardUsersPost(incoming: IncomingMessage, outgoing: ServerResponse): Promise<void> {
+  const url = new URL(incoming.url ?? '/', 'http://127.0.0.1')
+  const slug = url.pathname.replace(/^\/api\//, '').split('/').filter(Boolean)
+  const body = await readIncomingBody(incoming)
+  const headers = new Headers()
+  const contentType = headerValue(incoming.headers['content-type'])
+  if (contentType) headers.set('content-type', contentType)
+  const request = new Request(`http://127.0.0.1${url.pathname}`, {
+    method: incoming.method,
+    headers,
+    body: incoming.method === 'GET' || incoming.method === 'HEAD' ? undefined : new Uint8Array(body),
+  })
+  const response = await restPost(request, slugArgs(slug))
+  const responseBody = Buffer.from(await response.arrayBuffer())
+  const responseType = response.headers.get('content-type')
+  outgoing.writeHead(response.status, responseType ? { 'content-type': responseType } : {})
+  outgoing.end(responseBody)
+}
+
+async function withUsersHttpServer<T>(run: (baseUrl: string) => Promise<T>): Promise<T> {
+  const server = createServer((incoming, outgoing) => {
+    forwardUsersPost(incoming, outgoing).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : 'request failed'
+      if (!outgoing.headersSent) outgoing.writeHead(500, { 'content-type': 'text/plain' })
+      outgoing.end(message)
+    })
+  })
+
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+
+  const address = server.address()
+  if (!address || typeof address === 'string') {
+    server.close()
+    throw new Error('users HTTP server did not bind a port')
+  }
+
+  try {
+    return await run(`http://127.0.0.1:${address.port}`)
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()))
+    })
+  }
+}
+
+async function postSignupOverHttp(
+  baseUrl: string,
+  email: string,
+  role?: UserRole,
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const response = await fetch(`${baseUrl}/api/users`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password, ...(role ? { role } : {}) }),
+  })
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> }
+}
+
+async function patchUser(id: number, data: Record<string, unknown>, token: string): Promise<Response> {
+  return restPatch(jsonRequest(`/api/users/${id}`, data, token, 'PATCH'), slugArgs(['users', String(id)]))
+}
+
+async function deleteUser(id: number, token: string): Promise<Response> {
+  return restDelete(
+    new Request(`http://localhost:3000/api/users/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `JWT ${token}` },
+    }),
+    slugArgs(['users', String(id)]),
+  )
+}
+
+async function requireCreatedUser(email: string, role: UserRole): Promise<StoredUser> {
+  const created = await createUser(email, role, ownerToken)
+  if (!created.user) throw new Error(`owner could not create ${email}`)
+  return created.user
+}
+
+async function storedRecord(id: number) {
+  return payload.findByID({
+    collection: 'users',
+    id,
+    overrideAccess: true,
+  })
+}
+
+async function userStillExists(id: number): Promise<boolean> {
+  const found = await payload.find({
+    collection: 'users',
+    where: { id: { equals: id } },
+    overrideAccess: true,
+    limit: 1,
+  })
+  return found.totalDocs === 1
+}
+
 describe('Users collection access', () => {
   beforeAll(async () => {
     payload = await getPayload({ config: await config })
@@ -216,13 +330,8 @@ describe('Users collection access', () => {
       { email: 'race-omitted@example.com' },
     ]
 
-    const responses = await Promise.all(
-      signups.map((signup) =>
-        restPost(
-          jsonRequest('/api/users', { email: signup.email, password, ...(signup.role ? { role: signup.role } : {}) }),
-          slugArgs(['users']),
-        ),
-      ),
+    const responses = await withUsersHttpServer((baseUrl) =>
+      Promise.all(signups.map((signup) => postSignupOverHttp(baseUrl, signup.email, signup.role))),
     )
 
     for (const response of responses) {
@@ -240,6 +349,37 @@ describe('Users collection access', () => {
     for (const user of users.docs) {
       if (user.email !== ownerEmail) expect(user.role).toBe('viewer')
     }
+  }, 30_000)
+
+  it('lets one of two simultaneous OWNER_EMAIL signups win the unique email', async () => {
+    await wipeUsers()
+    const ownerEmail = configuredOwnerEmail()
+
+    const responses = await withUsersHttpServer((baseUrl) =>
+      Promise.all([
+        postSignupOverHttp(baseUrl, ownerEmail),
+        postSignupOverHttp(baseUrl, mixedCaseEmail(ownerEmail)),
+      ]),
+    )
+
+    const created = responses.filter((response) => response.status === 201)
+    const rejected = responses.filter((response) => response.status !== 201)
+    expect(created).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+    const rejectedText = JSON.stringify(rejected[0]?.body).toLowerCase()
+    const lostOnInsert = rejected[0]?.status === 500 && rejectedText.includes('something went wrong')
+    const lostOnValidation = rejected[0]?.status === 400 && /unique|duplicate|already/.test(rejectedText)
+    expect(lostOnInsert || lostOnValidation).toBe(true)
+
+    const users = await payload.find({
+      collection: 'users',
+      overrideAccess: true,
+      limit: 10,
+    })
+    const owners = users.docs.filter((user) => user.role === 'owner')
+    expect(users.docs).toHaveLength(1)
+    expect(owners).toHaveLength(1)
+    expect(owners[0]?.email).toBe(ownerEmail)
   }, 30_000)
 
   describe('authenticated rules', () => {
@@ -529,6 +669,119 @@ describe('Users collection access', () => {
       const remaining = await storedUser(owner.id)
       expect(remaining.role).toBe('owner')
       expect(remaining.email).toBe(configuredOwnerEmail())
+    })
+
+    it('lets an admin edit and delete viewer and editor accounts', async () => {
+      const staffViewer = await requireCreatedUser('access-staff-viewer@example.com', 'viewer')
+      const staffEditor = await requireCreatedUser('access-staff-editor@example.com', 'editor')
+
+      const viewerFields = await patchUser(
+        staffViewer.id,
+        {
+          telegramId: 'viewer-managed',
+          email: 'access-staff-viewer-renamed@example.com',
+          password: replacementPassword,
+        },
+        adminToken,
+      )
+      expect(viewerFields.status).toBe(200)
+      const storedViewer = await storedRecord(staffViewer.id)
+      expect(storedViewer.email).toBe('access-staff-viewer-renamed@example.com')
+      expect(storedViewer.telegramId).toBe('viewer-managed')
+      expect(storedViewer.role).toBe('viewer')
+      expect((await login('access-staff-viewer-renamed@example.com', replacementPassword)).status).toBe(200)
+
+      const editorFields = await patchUser(
+        staffEditor.id,
+        {
+          telegramId: 'editor-managed',
+          email: 'access-staff-editor-renamed@example.com',
+          password: replacementPassword,
+        },
+        adminToken,
+      )
+      expect(editorFields.status).toBe(200)
+      const storedEditor = await storedRecord(staffEditor.id)
+      expect(storedEditor.email).toBe('access-staff-editor-renamed@example.com')
+      expect(storedEditor.telegramId).toBe('editor-managed')
+      expect(storedEditor.role).toBe('editor')
+      expect((await login('access-staff-editor-renamed@example.com', replacementPassword)).status).toBe(200)
+
+      expect((await deleteUser(staffViewer.id, adminToken)).status).toBe(200)
+      expect(await userStillExists(staffViewer.id)).toBe(false)
+      expect((await deleteUser(staffEditor.id, adminToken)).status).toBe(200)
+      expect(await userStillExists(staffEditor.id)).toBe(false)
+    })
+
+    it('lets an admin edit their own non-role fields', async () => {
+      const selfAdmin = await requireCreatedUser('access-self-admin@example.com', 'admin')
+      const session = await login(selfAdmin.email, password)
+      if (!session.token) throw new Error('self admin login did not return a token')
+
+      const updated = await patchUser(
+        selfAdmin.id,
+        {
+          telegramId: 'self-admin',
+          email: 'access-self-admin-renamed@example.com',
+          password: replacementPassword,
+        },
+        session.token,
+      )
+      expect(updated.status).toBe(200)
+      const stored = await storedRecord(selfAdmin.id)
+      expect(stored.telegramId).toBe('self-admin')
+      expect(stored.email).toBe('access-self-admin-renamed@example.com')
+      expect(stored.role).toBe('admin')
+
+      const renamed = await login('access-self-admin-renamed@example.com', replacementPassword)
+      expect(renamed.status).toBe(200)
+      expect((await login(selfAdmin.email, password)).status).not.toBe(200)
+      if (!renamed.token) throw new Error('renamed admin login did not return a token')
+
+      const ownRole = await patchRole(selfAdmin.id, 'owner', renamed.token)
+      expect(ownRole.status).toBe(403)
+      expect((await storedUser(selfAdmin.id)).role).toBe('admin')
+    })
+
+    it('refuses an admin editing or deleting another admin', async () => {
+      const other = await requireCreatedUser('access-other-admin@example.com', 'admin')
+      const before = await storedRecord(other.id)
+
+      expect((await patchUser(other.id, { email: 'access-other-admin-taken@example.com' }, adminToken)).status).toBe(
+        403,
+      )
+      expect((await patchUser(other.id, { password: replacementPassword }, adminToken)).status).toBe(403)
+      expect((await patchUser(other.id, { telegramId: 'taken' }, adminToken)).status).toBe(403)
+      expect((await patchUser(other.id, { status: 'suspended' }, adminToken)).status).toBe(403)
+
+      const after = await storedRecord(other.id)
+      expect(after.email).toBe(before.email)
+      expect(after.telegramId).toBe(before.telegramId)
+      expect(after.status).toBe(before.status)
+      expect(after.role).toBe('admin')
+      expect((await login(other.email, password)).status).toBe(200)
+      expect((await login(other.email, replacementPassword)).status).not.toBe(200)
+
+      expect((await deleteUser(other.id, adminToken)).status).toBe(403)
+      expect(await userStillExists(other.id)).toBe(true)
+      expect((await storedUser(other.id)).role).toBe('admin')
+    })
+
+    it('lets an owner change another admin credentials and delete that admin', async () => {
+      const target = await requireCreatedUser('access-owner-managed-admin@example.com', 'admin')
+
+      expect((await patchUser(target.id, { password: replacementPassword }, ownerToken)).status).toBe(200)
+      expect((await login(target.email, password)).status).not.toBe(200)
+      expect((await login(target.email, replacementPassword)).status).toBe(200)
+
+      const renamedEmail = 'access-owner-managed-admin-renamed@example.com'
+      expect((await patchUser(target.id, { email: renamedEmail }, ownerToken)).status).toBe(200)
+      expect((await storedUser(target.id)).email).toBe(renamedEmail)
+      expect((await storedUser(target.id)).role).toBe('admin')
+      expect((await login(renamedEmail, replacementPassword)).status).toBe(200)
+
+      expect((await deleteUser(target.id, ownerToken)).status).toBe(200)
+      expect(await userStillExists(target.id)).toBe(false)
     })
   })
 })

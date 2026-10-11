@@ -98,12 +98,14 @@ async function guardRoleOnUpdate(
   throw new Forbidden()
 }
 
-function guardOwnerRecordFromAdmin(
+function guardProtectedRecordFromAdmin(
   data: { email?: unknown; password?: unknown } | undefined,
-  originalDoc: { email?: unknown; role?: unknown } | undefined,
+  originalDoc: { email?: unknown; id?: number | string; role?: unknown } | undefined,
   req: PayloadRequest,
 ): void {
-  if (originalDoc?.role !== 'owner' || actorRole(req.user) !== 'admin') return
+  if (actorRole(req.user) !== 'admin') return
+  if (originalDoc?.role !== 'owner' && originalDoc?.role !== 'admin') return
+  if (isSameUser(req.user, originalDoc?.id)) return
   if (emailsDiffer(originalDoc.email, data?.email)) throw new Forbidden()
   if (passwordWasSubmitted(data?.password)) throw new Forbidden()
 }
@@ -117,7 +119,7 @@ export const usersUpdateAccess: Access = ({ req }) => {
   if (role === 'owner') return true
   if (role === 'admin') {
     return {
-      or: [{ id: { equals: user.id } }, { role: { not_equals: 'owner' } }],
+      or: [{ id: { equals: user.id } }, { role: { in: ['editor', 'viewer'] } }],
     }
   }
   return { id: { equals: user.id } }
@@ -130,7 +132,7 @@ export const usersCreateAccess: Access = ({ req }) => {
 
 export const usersDeleteAccess: Access = async ({ req }) => {
   const role = actorRole(req.user)
-  if (role === 'admin') return { role: { not_equals: 'owner' } }
+  if (role === 'admin') return { role: { in: ['editor', 'viewer'] } }
   if (role !== 'owner') return false
   if ((await countOwners(req)) <= 1) return { role: { not_equals: 'owner' } }
   return true
@@ -186,7 +188,7 @@ export const enforceUserPrivileges: CollectionBeforeChangeHook = async ({
 
   if (operation === 'update') {
     await guardRoleOnUpdate(data, originalDoc, req)
-    guardOwnerRecordFromAdmin(data, originalDoc, req)
+    guardProtectedRecordFromAdmin(data, originalDoc, req)
   }
 
   return data
