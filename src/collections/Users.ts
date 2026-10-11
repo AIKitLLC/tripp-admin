@@ -1,5 +1,15 @@
 import type { CollectionConfig } from 'payload'
 
+import {
+  enforceUserPrivileges,
+  roleFieldCreateAccess,
+  roleFieldUpdateAccess,
+  usersCreateAccess,
+  usersDeleteAccess,
+  usersReadAccess,
+  usersUpdateAccess,
+} from './users-access'
+
 export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
@@ -7,12 +17,25 @@ export const Users: CollectionConfig = {
     defaultColumns: ['email', 'role', 'status', 'createdAt'],
   },
   auth: true,
+  access: {
+    read: usersReadAccess,
+    create: usersCreateAccess,
+    update: usersUpdateAccess,
+    delete: usersDeleteAccess,
+  },
+  hooks: {
+    beforeChange: [enforceUserPrivileges],
+  },
   fields: [
     {
       name: 'role',
       type: 'select',
       defaultValue: 'editor',
       required: true,
+      access: {
+        create: roleFieldCreateAccess,
+        update: roleFieldUpdateAccess,
+      },
       options: [
         { label: 'Owner (Toàn quyền)', value: 'owner' },
         { label: 'Admin (Quản trị)', value: 'admin' },
