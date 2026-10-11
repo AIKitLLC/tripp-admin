@@ -3,10 +3,23 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { getInitialCardsData, getInitialSpreadsData } from '@/lib/tripp/seed-data'
 
-export async function POST() {
+function userHasAdminRights(role: unknown): boolean {
+  return role === 'owner' || role === 'admin'
+}
+
+export async function POST(request: Request) {
   try {
     const payloadConfig = await config
     const payload = await getPayload({ config: payloadConfig })
+    const { user } = await payload.auth({ headers: request.headers })
+
+    if (!user) {
+      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 })
+    }
+
+    if (!userHasAdminRights(user.role)) {
+      return NextResponse.json({ ok: false, error: 'Admin access required' }, { status: 403 })
+    }
 
     const existingCards = await payload.find({
       collection: 'cards',
