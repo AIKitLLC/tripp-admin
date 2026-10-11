@@ -56,13 +56,13 @@ pnpm install
 
 ### 2. Cấu hình Môi trường
 
+Local đọc `PAYLOAD_SECRET` từ `.dev.vars` (Wrangler không commit file này):
+
 ```bash
-cp .env.example .env
+cp .dev.vars.example .dev.vars
 ```
-Tạo secret ngẫu nhiên cho `PAYLOAD_SECRET`:
-```bash
-openssl rand -hex 32
-```
+
+Giá trị trong `.dev.vars.example` chỉ dùng cho máy local. Production từ chối secret thiếu, là placeholder, hoặc ngắn hơn 32 ký tự.
 
 ### 3. Chạy Development Server
 
@@ -81,10 +81,15 @@ pnpm dev
 
 ### 4. Khởi tạo Dữ liệu Ban đầu (Seed Cards & Spreads)
 
-Sau khi tạo tài khoản Admin đầu tiên tại `/admin`, bạn có thể gọi endpoint seed để nạp tự động 78 lá bài và 6 kiểu trải bài vào database D1:
+Sau khi tạo tài khoản `owner` hoặc `admin` tại `/admin`, đăng nhập Payload rồi gọi seed. Endpoint từ chối khách (401) và tài khoản `editor` / `viewer` (403). Gọi lại không tạo thêm bản ghi nếu Cards hoặc Spreads đã có dữ liệu. Production vẫn bật route này: lần nạp đầu cho D1 trống dùng cùng đường đó, sau khi đã có admin. Không thêm cờ env riêng.
 
 ```bash
-curl -X POST http://localhost:3000/api/tripp/seed
+curl -X POST http://localhost:3000/api/users/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"your-password"}'
+
+curl -X POST http://localhost:3000/api/tripp/seed \
+  -H "Authorization: JWT <token>"
 ```
 
 ---
@@ -98,7 +103,7 @@ curl -X POST http://localhost:3000/api/tripp/seed
 | `/api/tripp/cards` | `GET` | Danh sách 78 lá bài Tarot |
 | `/api/tripp/spreads` | `GET` | Danh sách các kiểu trải bài |
 | `/api/tripp/status` | `GET` | Trạng thái dịch vụ |
-| `/api/tripp/seed` | `POST` | Nạp dữ liệu mặc định vào database |
+| `/api/tripp/seed` | `POST` | Nạp Cards và Spreads khi chưa có. Chỉ `owner` hoặc `admin`. |
 | `/api/cards`, `/api/spreads`... | `GET/POST` | Auto-generated Payload CMS REST APIs |
 
 ---
@@ -117,7 +122,18 @@ pnpm wrangler r2 bucket create tripp-admin
 
 3. Cập nhật `database_id` trong `wrangler.jsonc`.
 
-4. Chạy migration và deploy:
+4. Đặt `PAYLOAD_SECRET` **mới** trước khi deploy. Giá trị cũ nằm trong git history: coi như đã lộ, kể cả khi repo private, và phải xoay. Không viết lại git history.
+
+```bash
+openssl rand -base64 48
+pnpm wrangler secret put PAYLOAD_SECRET
+```
+
+Dán giá trị mới khi Wrangler hỏi. Không dùng lại giá trị cũ. Xoay secret đăng xuất mọi phiên. `wrangler secret put` tạo version và deploy Worker ngay.
+
+`pnpm run deploy:database` chạy migrate với `NODE_ENV=production`, nên process đó cũng cần `PAYLOAD_SECRET` hợp lệ trong environment (không commit). Secret trên Worker không tự có trong shell.
+
+5. Chạy migration và deploy:
 ```bash
 pnpm payload migrate:create
 pnpm run deploy

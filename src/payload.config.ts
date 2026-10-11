@@ -15,6 +15,7 @@ import { Spreads } from './collections/Spreads'
 import { ContextFlows } from './collections/ContextFlows'
 import { ReadingSessions } from './collections/ReadingSessions'
 import { AuditLogs } from './collections/AuditLogs'
+import { readBindingSecret, readNextPhase, resolvePayloadSecret } from './lib/payload-secret'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -22,7 +23,7 @@ const realpath = (value: string) => (fs.existsSync(value) ? fs.realpathSync(valu
 
 const isCLI = process.argv.some((value) => realpath(value).endsWith(path.join('payload', 'bin.js')))
 const isProduction = process.env.NODE_ENV === 'production'
-const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build'
+const isNextBuild = readNextPhase() === 'phase-production-build'
 
 const createLog =
   (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
@@ -49,6 +50,13 @@ const cloudflare =
     ? await getCloudflareContextFromWrangler()
     : await getCloudflareContext({ async: true })
 
+const secret = resolvePayloadSecret({
+  envSecret: process.env.PAYLOAD_SECRET,
+  bindingSecret: readBindingSecret(cloudflare.env),
+  nodeEnv: process.env.NODE_ENV,
+  nextPhase: readNextPhase(),
+})
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -58,7 +66,7 @@ export default buildConfig({
   },
   collections: [Users, Media, Cards, Spreads, ContextFlows, ReadingSessions, AuditLogs],
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || (cloudflare.env as any).PAYLOAD_SECRET || 'ed57ca7b8980ede524ce10941d8b30d282cb8f0b273db5017fb0c634010fbd4d',
+  secret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
@@ -73,6 +81,7 @@ export default buildConfig({
 })
 
 function platformProxyPersist(): GetPlatformProxyOptions['persist'] {
+  if (process.env.VITEST) return { path: '.wrangler/state/vitest' }
   if (isNextBuild) return false
   return undefined
 }

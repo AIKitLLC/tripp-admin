@@ -1,0 +1,5 @@
+# Local development only. Copy to .dev.vars (gitignored).
+# Production rejects this placeholder. Set a new secret with:
+#   openssl rand -base64 48
+#   pnpm wrangler secret put PAYLOAD_SECRET
+PAYLOAD_SECRET=local-dev-only-placeholder
