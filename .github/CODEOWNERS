@@ -1,0 +1,5 @@
+# Tony reviews changes to CI policy and the typecheck baseline.
+/ci/ @tony-aikit
+/.github/ @tony-aikit
+/scripts/typecheck-baseline.mjs @tony-aikit
+/scripts/typecheck-baseline-ratchet.mjs @tony-aikit

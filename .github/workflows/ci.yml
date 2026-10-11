@@ -9,12 +9,20 @@ permissions:
 
 jobs:
   verify:
-    name: install, lint, typecheck, int tests
+    name: install, lint, typecheck, int tests, build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Typecheck baseline can only shrink
+        env:
+          BASE_REF: ${{ github.base_ref || github.event.repository.default_branch }}
+        run: node scripts/typecheck-baseline-ratchet.mjs
 
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -44,3 +52,17 @@ jobs:
             exit 1
           fi
           PAYLOAD_SECRET="$secret" pnpm test:int
+
+      - name: Build
+        run: |
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}${CLOUDFLARE_API_KEY:-}${CF_API_TOKEN:-}${WRANGLER_API_TOKEN:-}" ]; then
+            echo "A Cloudflare token is present. Refusing to build with it." >&2
+            exit 1
+          fi
+          unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_ACCOUNT_ID CF_API_TOKEN WRANGLER_API_TOKEN
+          secret="$(openssl rand -hex 32)"
+          if [ "${#secret}" -lt 32 ]; then
+            echo "Throwaway PAYLOAD_SECRET was shorter than 32 characters." >&2
+            exit 1
+          fi
+          PAYLOAD_SECRET="$secret" pnpm run build
