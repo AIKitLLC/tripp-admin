@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-11. Update this file in the same PR as every change. CI on this branch builds with `pnpm run build` (`next build` only), rejects added lines in `ci/tsc-baseline.txt`, and runs `node --test scripts/baseline-ratchet.test.mjs` to prove that rejection. CODEOWNERS requests Tony's review and blocks nothing until he requires code-owner review on `main`.
+Last updated: 2026-10-11. Update this file in the same PR as every change. CI on this branch runs `pnpm run build` (`next build`), then `pnpm exec opennextjs-cloudflare build` with no Cloudflare token, then `node scripts/production-secret-smoke.mjs`. That smoke test starts the built Worker with `wrangler dev --local`, `NODE_ENV=production`, and no `PAYLOAD_SECRET`, and requires the production secret error. CI also rejects added lines in `ci/tsc-baseline.txt` and runs `node --test scripts/baseline-ratchet.test.mjs` to prove that rejection. CODEOWNERS requests Tony's review and blocks nothing until he requires code-owner review on `main`. Branch protection is still his decision.
 
 Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default branch is `main`. Latest product commit on `main` is `ed88d14` (2026-10-08, Next 16 Turbopack build and Cloudflare Workers deploy). This branch was already based on that commit; there was nothing to rebase.
 
@@ -10,7 +10,7 @@ Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default bra
 | --- | --- |
 | Open issues | #2 standards (labels set, no milestone). #3 secret, #4 template shell, #5 seed route, #6 `ignoreBuildErrors`, #7 reading engine, #8 static client (labels set, no milestone). #10 Users access lockdown (no labels, no milestone). |
 | Closed issues | None. |
-| Open pull requests | [#1](https://github.com/AIKitLLC/tripp-admin/pull/1) closes #2. [#9](https://github.com/AIKitLLC/tripp-admin/pull/9) closes #3 and #5. |
+| Open pull requests | [#1](https://github.com/AIKitLLC/tripp-admin/pull/1) closes #2 and now contains the secret fix, seed auth, and Users lockdown. [#9](https://github.com/AIKitLLC/tripp-admin/pull/9) and [#11](https://github.com/AIKitLLC/tripp-admin/pull/11) are merged into this branch, not into `main`. |
 | Milestones | None. `M1 Foundation` and `M2 Reading service` are still only proposed below. |
 | Labels | GitHub defaults plus the `type:*`, `area:*`, `status:*`, and `priority:*` labels from the table below. None were deleted. |
 

@@ -83,7 +83,12 @@ jobs:
             exit 1
           fi
           PAYLOAD_SECRET="$secret" pnpm exec opennextjs-cloudflare build
-          if ! grep -R -q 'process.env.NEXT_PHASE' .open-next; then
-            echo "The OpenNext bundle does not read NEXT_PHASE at runtime." >&2
+
+      - name: Production secret smoke
+        run: |
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}${CLOUDFLARE_API_KEY:-}${CF_API_TOKEN:-}${WRANGLER_API_TOKEN:-}" ]; then
+            echo "A Cloudflare token is present. Refusing to smoke-test with it." >&2
             exit 1
           fi
+          unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_ACCOUNT_ID CF_API_TOKEN WRANGLER_API_TOKEN PAYLOAD_SECRET
+          node scripts/production-secret-smoke.mjs

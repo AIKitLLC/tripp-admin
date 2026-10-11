@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 
 import { getPayload, type Payload } from 'payload'
+import { DUPLICATE_EMAIL_MESSAGE } from '@/collections/unique-email-conflict'
 import config from '@/payload.config'
 import {
   GRAPHQL_POST,
@@ -11,6 +12,8 @@ import {
 } from '@payloadcms/next/routes'
 
 import { describe, it, beforeAll, expect } from 'vitest'
+
+import { captureOutput } from '../helpers/capture-output'
 
 const password = 'test-password'
 const replacementPassword = 'replacement-password'
@@ -355,21 +358,28 @@ describe('Users collection access', () => {
     await wipeUsers()
     const ownerEmail = configuredOwnerEmail()
 
-    const responses = await withUsersHttpServer((baseUrl) =>
-      Promise.all([
-        postSignupOverHttp(baseUrl, ownerEmail),
-        postSignupOverHttp(baseUrl, mixedCaseEmail(ownerEmail)),
-      ]),
-    )
+    const output = captureOutput()
+    let responses: { status: number; body: Record<string, unknown> }[]
+    try {
+      responses = await withUsersHttpServer((baseUrl) =>
+        Promise.all([
+          postSignupOverHttp(baseUrl, ownerEmail),
+          postSignupOverHttp(baseUrl, mixedCaseEmail(ownerEmail)),
+        ]),
+      )
+    } finally {
+      output.stop()
+    }
+    const logged = output.text()
+    expect(logged).not.toContain(password)
+    expect(logged).not.toMatch(/params:\s*(?!\[redacted\])\S/)
 
     const created = responses.filter((response) => response.status === 201)
     const rejected = responses.filter((response) => response.status !== 201)
     expect(created).toHaveLength(1)
     expect(rejected).toHaveLength(1)
-    const rejectedText = JSON.stringify(rejected[0]?.body).toLowerCase()
-    const lostOnInsert = rejected[0]?.status === 500 && rejectedText.includes('something went wrong')
-    const lostOnValidation = rejected[0]?.status === 400 && /unique|duplicate|already/.test(rejectedText)
-    expect(lostOnInsert || lostOnValidation).toBe(true)
+    expect(rejected[0]?.status).toBe(409)
+    expect(JSON.stringify(rejected[0]?.body)).toContain(DUPLICATE_EMAIL_MESSAGE)
 
     const users = await payload.find({
       collection: 'users',

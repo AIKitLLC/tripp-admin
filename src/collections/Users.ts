@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { reportDuplicateEmailConflict } from './unique-email-conflict'
 import {
   enforceUserPrivileges,
   roleFieldCreateAccess,
@@ -24,6 +25,7 @@ export const Users: CollectionConfig = {
     delete: usersDeleteAccess,
   },
   hooks: {
+    afterError: [reportDuplicateEmailConflict],
     beforeChange: [enforceUserPrivileges],
   },
   fields: [

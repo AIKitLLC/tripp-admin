@@ -69,7 +69,7 @@ Typecheck prints every diagnostic. `ci/tsc-baseline.txt` records the 49 diagnost
 
 `.github/CODEOWNERS` assigns `/ci/`, `/.github/`, the baseline scripts and their fixture test, `tsconfig.json`, `package.json`, and `eslint.config.*` to `@tony-aikit`. Those entries request review. They do nothing to block a merge until branch protection on `main` requires a review from code owners. Turning that on is Tony's decision; this repo's settings are left unchanged. CODEOWNERS is read from the base branch, so it applies after this file is on `main`.
 
-During `next build` the local platform proxy sets `persist: false`, so the page-data workers do not share one `.wrangler/state` SQLite file. `pnpm run build` is `next build` only. CI does not run `opennextjs-cloudflare build`.
+During `next build` the local platform proxy sets `persist: false`, so the page-data workers do not share one `.wrangler/state` SQLite file. `pnpm run build` is `next build` only. The next CI step runs `pnpm exec opennextjs-cloudflare build` with a throwaway `PAYLOAD_SECRET` and no Cloudflare token. After that bundle exists, `node scripts/production-secret-smoke.mjs` starts it with `wrangler dev --local` (local D1 and R2, no token, `NODE_ENV=production`, `PAYLOAD_SECRET` unset) and requires the production `PAYLOAD_SECRET` error. Branch protection on `main` is still Tony's decision; CODEOWNERS does not block a merge until he turns that on.
 
 Playwright stays out of this workflow. `tests/e2e/frontend.e2e.spec.ts` still expects the blank template, so an E2E job would fail for a reason that is already on `main`.
 

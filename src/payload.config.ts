@@ -17,6 +17,7 @@ import { ReadingSessions } from './collections/ReadingSessions'
 import { AuditLogs } from './collections/AuditLogs'
 import { rememberOwnerEmailBinding } from './lib/owner-email'
 import { readBindingSecret, readNextPhase, resolvePayloadSecret } from './lib/payload-secret'
+import { createRedactingLogger } from './lib/redact-log'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -26,25 +27,7 @@ const isCLI = process.argv.some((value) => realpath(value)?.endsWith(path.join('
 const isProduction = process.env.NODE_ENV === 'production'
 const isNextBuild = readNextPhase() === 'phase-production-build'
 
-const createLog =
-  (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
-    if (typeof objOrMsg === 'string') {
-      fn(JSON.stringify({ level, msg: objOrMsg }))
-    } else {
-      fn(JSON.stringify({ level, ...objOrMsg, msg: msg ?? (objOrMsg as { msg?: string }).msg }))
-    }
-  }
-
-const cloudflareLogger = {
-  level: process.env.PAYLOAD_LOG_LEVEL || 'info',
-  trace: createLog('trace', console.debug),
-  debug: createLog('debug', console.debug),
-  info: createLog('info', console.log),
-  warn: createLog('warn', console.warn),
-  error: createLog('error', console.error),
-  fatal: createLog('fatal', console.error),
-  silent: () => {},
-} as any // Use PayloadLogger type when it's exported
+const redactingLogger = createRedactingLogger()
 
 const cloudflare =
   isCLI || !isProduction || isNextBuild
@@ -73,8 +56,8 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: sqliteD1Adapter({ binding: cloudflare.env.D1 }),
-  logger: isProduction ? cloudflareLogger : undefined,
+  db: sqliteD1Adapter({ binding: cloudflare.env.D1, logger: false }),
+  logger: redactingLogger as any,
   plugins: [
     r2Storage({
       bucket: cloudflare.env.R2,
