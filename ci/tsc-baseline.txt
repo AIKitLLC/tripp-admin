@@ -1,0 +1,49 @@
+src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'error' does not exist on type 'unknown'.
+src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'ok' does not exist on type 'unknown'.
+src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'ok' does not exist on type 'unknown'.
+src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'reply' does not exist on type 'unknown'.
+src/app/(frontend)/TrippChatClient.tsx TS2345 Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<ReadingResponse>'.
+src/app/(payload)/api/[...slug]/route.ts TS2882 Cannot find module or type declarations for side-effect import of '@payloadcms/next/css'.
+src/app/(payload)/api/graphql-playground/route.ts TS2882 Cannot find module or type declarations for side-effect import of '@payloadcms/next/css'.
+src/app/(payload)/layout.tsx TS2882 Cannot find module or type declarations for side-effect import of '@payloadcms/next/css'.
+src/lib/tripp/context-flow.ts TS2339 Property 'dataOrder' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
+src/lib/tripp/context-flow.ts TS2339 Property 'includeAssistant' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
+src/lib/tripp/context-flow.ts TS2339 Property 'includeReadingSummary' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
+src/lib/tripp/context-flow.ts TS2339 Property 'maxBytes' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
+src/lib/tripp/context-flow.ts TS2339 Property 'maxTurns' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
+src/lib/tripp/context-flow.ts TS2339 Property 'text' does not exist on type '(NodeBase & { kind: "prompt_part"; locked: true; partName: string; sourceVersion: string; }) | (NodeBase & { kind: "prompt_part"; locked: false; partName: "OWNER_QUALITY" | "TESTER_QUALITY"; sourceVersion: string; text: string; })'.
+src/lib/tripp/context-flow.ts TS2339 Property 'text' does not exist on type '(NodeBase & { kind: "prompt_part"; locked: true; partName: string; sourceVersion: string; }) | (NodeBase & { kind: "prompt_part"; locked: false; partName: "OWNER_QUALITY" | "TESTER_QUALITY"; sourceVersion: string; text: string; })'.
+src/lib/tripp/context-flow.ts TS2339 Property 'text' does not exist on type '(NodeBase & { kind: "prompt_part"; locked: true; partName: string; sourceVersion: string; }) | (NodeBase & { kind: "prompt_part"; locked: false; partName: "OWNER_QUALITY" | "TESTER_QUALITY"; sourceVersion: string; text: string; })'.
+src/lib/tripp/conversation.ts TS7018 Object literal's property 'compressedUserIds' implicitly has an 'any[]' type.
+src/lib/tripp/conversation.ts TS7018 Object literal's property 'compressedUserIds' implicitly has an 'any[]' type.
+src/lib/tripp/policy.ts TS2339 Property 'reason' does not exist on type 'GroundedTextInspection'.
+src/lib/tripp/reading-api.ts TS2307 Cannot find module './admin-auth' or its corresponding type declarations.
+src/lib/tripp/reading-api.ts TS2307 Cannot find module './admin-runtime' or its corresponding type declarations.
+src/lib/tripp/reading-api.ts TS2339 Property 'outputPart' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'outputPart' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'outputPart' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'outputPart' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'privateFactRule' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'privateFactRule' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'privateFactRule' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'privateFactRule' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'reason' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'reason' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS2339 Property 'reason' does not exist on type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-api.ts TS7018 Object literal's property 'pendingRequest' implicitly has an 'any' type.
+src/lib/tripp/reading-api.ts TS7018 Object literal's property 'reading' implicitly has an 'any' type.
+src/lib/tripp/reading-api.ts TS7018 Object literal's property 'turns' implicitly has an 'any[]' type.
+src/lib/tripp/reading-flow.ts TS7018 Object literal's property 'revealedCard' implicitly has an 'any' type.
+src/lib/tripp/reading-knowledge.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-knowledge.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-knowledge.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-knowledge.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2322 Type '{ ok: true; value: unknown; } | { ok: false; reason: ReadingOutputRejection; }' is not assignable to type 'ReadingReplyParseResult'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
+tests/helpers/seedUser.ts TS2345 Argument of type '{ collection: "users"; data: { email: string; password: string; }; overrideAccess: true; }' is not assignable to parameter of type 'Options<"users", UsersSelect<false> | UsersSelect<true>>'.

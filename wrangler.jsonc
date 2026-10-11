@@ -14,8 +14,10 @@
   "ai": {
     "binding": "AI",
   },
+  "secrets": {
+    "required": ["PAYLOAD_SECRET"]
+  },
   "vars": {
-    "PAYLOAD_SECRET": "ed57ca7b8980ede524ce10941d8b30d282cb8f0b273db5017fb0c634010fbd4d",
     "AI_ENABLED": "true",
     "REPLY_MODEL": "@cf/qwen/qwen3-30b-a3b-fp8",
     "ADMIN_ENABLED": "true",

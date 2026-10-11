@@ -15,38 +15,33 @@ import { Spreads } from './collections/Spreads'
 import { ContextFlows } from './collections/ContextFlows'
 import { ReadingSessions } from './collections/ReadingSessions'
 import { AuditLogs } from './collections/AuditLogs'
+import { rememberOwnerEmailBinding } from './lib/owner-email'
+import { readBindingSecret, readNextPhase, resolvePayloadSecret } from './lib/payload-secret'
+import { createRedactingLogger } from './lib/redact-log'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 const realpath = (value: string) => (fs.existsSync(value) ? fs.realpathSync(value) : undefined)
 
-const isCLI = process.argv.some((value) => realpath(value).endsWith(path.join('payload', 'bin.js')))
+const isCLI = process.argv.some((value) => realpath(value)?.endsWith(path.join('payload', 'bin.js')))
 const isProduction = process.env.NODE_ENV === 'production'
+const isNextBuild = readNextPhase() === 'phase-production-build'
 
-const createLog =
-  (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
-    if (typeof objOrMsg === 'string') {
-      fn(JSON.stringify({ level, msg: objOrMsg }))
-    } else {
-      fn(JSON.stringify({ level, ...objOrMsg, msg: msg ?? (objOrMsg as { msg?: string }).msg }))
-    }
-  }
-
-const cloudflareLogger = {
-  level: process.env.PAYLOAD_LOG_LEVEL || 'info',
-  trace: createLog('trace', console.debug),
-  debug: createLog('debug', console.debug),
-  info: createLog('info', console.log),
-  warn: createLog('warn', console.warn),
-  error: createLog('error', console.error),
-  fatal: createLog('fatal', console.error),
-  silent: () => {},
-} as any // Use PayloadLogger type when it's exported
+const redactingLogger = createRedactingLogger()
 
 const cloudflare =
-  isCLI || !isProduction
+  isCLI || !isProduction || isNextBuild
     ? await getCloudflareContextFromWrangler()
     : await getCloudflareContext({ async: true })
+
+rememberOwnerEmailBinding(cloudflare.env)
+
+const secret = resolvePayloadSecret({
+  envSecret: process.env.PAYLOAD_SECRET,
+  bindingSecret: readBindingSecret(cloudflare.env),
+  nodeEnv: process.env.NODE_ENV,
+  nextPhase: readNextPhase(),
+})
 
 export default buildConfig({
   admin: {
@@ -57,12 +52,12 @@ export default buildConfig({
   },
   collections: [Users, Media, Cards, Spreads, ContextFlows, ReadingSessions, AuditLogs],
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || (cloudflare.env as any).PAYLOAD_SECRET || 'ed57ca7b8980ede524ce10941d8b30d282cb8f0b273db5017fb0c634010fbd4d',
+  secret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: sqliteD1Adapter({ binding: cloudflare.env.D1 }),
-  logger: isProduction ? cloudflareLogger : undefined,
+  db: sqliteD1Adapter({ binding: cloudflare.env.D1, logger: false }),
+  logger: redactingLogger as any,
   plugins: [
     r2Storage({
       bucket: cloudflare.env.R2,
@@ -71,13 +66,20 @@ export default buildConfig({
   ],
 })
 
+function platformProxyPersist(): GetPlatformProxyOptions['persist'] {
+  if (process.env.VITEST) return { path: '.wrangler/state/vitest' }
+  if (isNextBuild) return false
+  return undefined
+}
+
 // Adapted from https://github.com/opennextjs/opennextjs-cloudflare/blob/d00b3a13e42e65aad76fba41774815726422cc39/packages/cloudflare/src/api/cloudflare-context.ts#L328C36-L328C46
 function getCloudflareContextFromWrangler(): Promise<CloudflareContext> {
   return import(/* webpackIgnore: true */ `${'__wrangler'.replaceAll('_', '')}`).then(
     ({ getPlatformProxy }) =>
       getPlatformProxy({
         environment: process.env.CLOUDFLARE_ENV,
-        remoteBindings: isProduction,
+        remoteBindings: isProduction && !isNextBuild,
+        persist: platformProxyPersist(),
       } satisfies GetPlatformProxyOptions),
   )
 }
