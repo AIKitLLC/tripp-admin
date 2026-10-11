@@ -15,6 +15,7 @@ import { Spreads } from './collections/Spreads'
 import { ContextFlows } from './collections/ContextFlows'
 import { ReadingSessions } from './collections/ReadingSessions'
 import { AuditLogs } from './collections/AuditLogs'
+import { rememberOwnerEmailBinding } from './lib/owner-email'
 import { readBindingSecret, readNextPhase, resolvePayloadSecret } from './lib/payload-secret'
 
 const filename = fileURLToPath(import.meta.url)
@@ -49,6 +50,8 @@ const cloudflare =
   isCLI || !isProduction || isNextBuild
     ? await getCloudflareContextFromWrangler()
     : await getCloudflareContext({ async: true })
+
+rememberOwnerEmailBinding(cloudflare.env)
 
 const secret = resolvePayloadSecret({
   envSecret: process.env.PAYLOAD_SECRET,

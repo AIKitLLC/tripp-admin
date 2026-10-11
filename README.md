@@ -56,13 +56,15 @@ pnpm install
 
 ### 2. Cấu hình Môi trường
 
-Local đọc `PAYLOAD_SECRET` từ `.dev.vars` (Wrangler không commit file này):
+Local đọc `PAYLOAD_SECRET` và `OWNER_EMAIL` từ `.dev.vars` (Wrangler không commit file này):
 
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
 Giá trị trong `.dev.vars.example` chỉ dùng cho máy local. Production từ chối secret thiếu, là placeholder, hoặc ngắn hơn 32 ký tự.
+
+`OWNER_EMAIL` là email cấu hình sẵn, không commit. User tạo với đúng email đó (không phân biệt hoa thường, đã trim) nhận vai trò `owner`. Đăng ký công khai và form user đầu tiên không tạo `owner` hoặc `admin`; mọi tài khoản tự tạo khác là `viewer`. Nếu production thiếu `OWNER_EMAIL`, app vẫn chạy, không tạo owner, và ghi log.
 
 ### 3. Chạy Development Server
 
@@ -81,7 +83,7 @@ pnpm dev
 
 ### 4. Khởi tạo Dữ liệu Ban đầu (Seed Cards & Spreads)
 
-Sau khi tạo tài khoản `owner` hoặc `admin` tại `/admin`, đăng nhập Payload rồi gọi seed. Endpoint từ chối khách (401) và tài khoản `editor` / `viewer` (403). Gọi lại không tạo thêm bản ghi nếu Cards hoặc Spreads đã có dữ liệu. Production vẫn bật route này: lần nạp đầu cho D1 trống dùng cùng đường đó, sau khi đã có admin. Không thêm cờ env riêng.
+Tài khoản `owner` là user được tạo với đúng `OWNER_EMAIL`. Owner đó tạo `admin`. Đăng nhập Payload rồi gọi seed. Endpoint từ chối khách (401) và tài khoản `editor` / `viewer` (403). Gọi lại không tạo thêm bản ghi nếu Cards hoặc Spreads đã có dữ liệu. Production vẫn bật route này: lần nạp đầu cho D1 trống dùng cùng đường đó, sau khi owner đã tạo admin. Không thêm cờ env riêng.
 
 ```bash
 curl -X POST http://localhost:3000/api/users/login \
@@ -133,7 +135,13 @@ Dán giá trị mới khi Wrangler hỏi. Không dùng lại giá trị cũ. Xoa
 
 `pnpm run deploy:database` chạy migrate với `NODE_ENV=production`, nên process đó cũng cần `PAYLOAD_SECRET` hợp lệ trong environment (không commit). Secret trên Worker không tự có trong shell.
 
-5. Chạy migration và deploy:
+5. Đặt `OWNER_EMAIL`. Không commit email này. User tạo với đúng email đó trở thành owner; mọi đăng ký khác là viewer.
+
+```bash
+pnpm wrangler secret put OWNER_EMAIL
+```
+
+6. Chạy migration và deploy:
 ```bash
 pnpm payload migrate:create
 pnpm run deploy

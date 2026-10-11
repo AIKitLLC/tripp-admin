@@ -6,9 +6,9 @@ import {
   type PayloadRequest,
 } from 'payload'
 
-type UserRole = 'owner' | 'admin' | 'editor' | 'viewer'
+import { isOwnerEmail, logMissingOwnerEmail, normalizeEmail, readOwnerEmail } from '@/lib/owner-email'
 
-const ASSIGNABLE_BY_ADMIN: readonly UserRole[] = ['admin', 'editor', 'viewer']
+type UserRole = 'owner' | 'admin' | 'editor' | 'viewer'
 
 function actorRole(user: PayloadRequest['user']): UserRole | undefined {
   if (!user || !('role' in user)) return undefined
@@ -21,18 +21,13 @@ function isPrivileged(role: UserRole | undefined): boolean {
   return role === 'owner' || role === 'admin'
 }
 
+function isStaffRole(role: unknown): role is 'editor' | 'viewer' {
+  return role === 'editor' || role === 'viewer'
+}
+
 function isSameUser(user: PayloadRequest['user'], id: number | string | undefined): boolean {
   if (!user || id === undefined || user.id === undefined) return false
   return String(user.id) === String(id)
-}
-
-async function countUsers(req: PayloadRequest): Promise<number> {
-  const result = await req.payload.count({
-    collection: 'users',
-    overrideAccess: true,
-    req,
-  })
-  return result.totalDocs
 }
 
 async function countOwners(req: PayloadRequest): Promise<number> {
@@ -43,12 +38,6 @@ async function countOwners(req: PayloadRequest): Promise<number> {
     req,
   })
   return result.totalDocs
-}
-
-function normalizeEmail(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-  const normalized = value.trim().toLowerCase()
-  return normalized.length > 0 ? normalized : undefined
 }
 
 function emailsDiffer(current: unknown, next: unknown): boolean {
@@ -69,6 +58,56 @@ function ownRecordOrPrivileged(req: PayloadRequest): boolean | { id: { equals: n
   return { id: { equals: user.id } }
 }
 
+function assignCreatedUserRole(
+  data: Record<string, unknown>,
+  req: PayloadRequest,
+): Record<string, unknown> {
+  if (isOwnerEmail(data.email)) {
+    return { ...data, role: 'owner' }
+  }
+
+  if (!readOwnerEmail()) logMissingOwnerEmail(req)
+
+  if (!req.user) {
+    return { ...data, role: 'viewer' }
+  }
+
+  if (data.role === 'owner') throw new Forbidden()
+  return data
+}
+
+async function guardRoleOnUpdate(
+  data: { role?: unknown; id?: unknown } | undefined,
+  originalDoc: { id?: number | string; role?: unknown } | undefined,
+  req: PayloadRequest,
+): Promise<void> {
+  const nextRole = data?.role
+  const currentRole = originalDoc?.role
+  if (nextRole === undefined || nextRole === currentRole) return
+
+  if (currentRole === 'owner' && nextRole !== 'owner' && (await countOwners(req)) <= 1) {
+    throw new Forbidden()
+  }
+
+  if (isSameUser(req.user, originalDoc?.id)) throw new Forbidden()
+  if (nextRole === 'owner') throw new Forbidden()
+
+  const role = actorRole(req.user)
+  if (role === 'owner') return
+  if (role === 'admin' && isStaffRole(currentRole) && isStaffRole(nextRole)) return
+  throw new Forbidden()
+}
+
+function guardOwnerRecordFromAdmin(
+  data: { email?: unknown; password?: unknown } | undefined,
+  originalDoc: { email?: unknown; role?: unknown } | undefined,
+  req: PayloadRequest,
+): void {
+  if (originalDoc?.role !== 'owner' || actorRole(req.user) !== 'admin') return
+  if (emailsDiffer(originalDoc.email, data?.email)) throw new Forbidden()
+  if (passwordWasSubmitted(data?.password)) throw new Forbidden()
+}
+
 export const usersReadAccess: Access = ({ req }) => ownRecordOrPrivileged(req)
 
 export const usersUpdateAccess: Access = ({ req }) => {
@@ -84,8 +123,8 @@ export const usersUpdateAccess: Access = ({ req }) => {
   return { id: { equals: user.id } }
 }
 
-export const usersCreateAccess: Access = async ({ req }) => {
-  if ((await countUsers(req)) === 0) return true
+export const usersCreateAccess: Access = ({ req }) => {
+  if (!req.user) return true
   return isPrivileged(actorRole(req.user))
 }
 
@@ -97,16 +136,18 @@ export const usersDeleteAccess: Access = async ({ req }) => {
   return true
 }
 
-export const roleFieldCreateAccess: FieldAccess = async ({ data, req }) => {
-  if ((await countUsers(req)) === 0) return true
+export const roleFieldCreateAccess: FieldAccess = ({ data, req }) => {
+  if (!req.user || isOwnerEmail(data?.email)) return true
 
   const role = actorRole(req.user)
-  if (role === 'owner') return true
-  if (role === 'admin') {
+  if (role === 'owner') {
     if (data?.role === 'owner') throw new Forbidden()
     return true
   }
-
+  if (role === 'admin') {
+    if (data?.role === 'owner' || data?.role === 'admin') throw new Forbidden()
+    return true
+  }
   return false
 }
 
@@ -124,11 +165,11 @@ export const roleFieldUpdateAccess: FieldAccess = async ({ data, doc, id, req })
   if (isSameUser(req.user, id ?? doc?.id)) throw new Forbidden()
 
   const role = actorRole(req.user)
-  if (role === 'owner') return true
-  if (role === 'admin') {
-    if (currentRole === 'owner' || nextRole === 'owner') throw new Forbidden()
-    if (ASSIGNABLE_BY_ADMIN.includes(nextRole as UserRole)) return true
+  if (role === 'owner') {
+    if (nextRole === 'owner') throw new Forbidden()
+    return true
   }
+  if (role === 'admin' && isStaffRole(currentRole) && isStaffRole(nextRole)) return true
 
   throw new Forbidden()
 }
@@ -139,23 +180,13 @@ export const enforceUserPrivileges: CollectionBeforeChangeHook = async ({
   originalDoc,
   req,
 }) => {
-  if (operation === 'create' && (await countUsers(req)) === 0) {
-    return { ...data, role: 'owner' }
+  if (operation === 'create') {
+    return assignCreatedUserRole(data ?? {}, req)
   }
 
-  if (
-    operation === 'update' &&
-    originalDoc?.role === 'owner' &&
-    data?.role !== undefined &&
-    data.role !== 'owner' &&
-    (await countOwners(req)) <= 1
-  ) {
-    throw new Forbidden()
-  }
-
-  if (operation === 'update' && originalDoc?.role === 'owner' && actorRole(req.user) === 'admin') {
-    if (emailsDiffer(originalDoc.email, data?.email)) throw new Forbidden()
-    if (passwordWasSubmitted(data?.password)) throw new Forbidden()
+  if (operation === 'update') {
+    await guardRoleOnUpdate(data, originalDoc, req)
+    guardOwnerRecordFromAdmin(data, originalDoc, req)
   }
 
   return data

@@ -10,6 +10,7 @@ interface __BaseEnv_CloudflareEnv {
 	REPLY_MODEL: "@cf/qwen/qwen3-30b-a3b-fp8";
 	ADMIN_ENABLED: "true";
 	PAYLOAD_SECRET: string;
+	OWNER_EMAIL: string;
 	WORKER_SELF_REFERENCE: Fetcher /* tripp-admin */;
 }
 declare namespace Cloudflare {
@@ -20,7 +21,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "AI_ENABLED" | "REPLY_MODEL" | "ADMIN_ENABLED" | "PAYLOAD_SECRET">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "AI_ENABLED" | "REPLY_MODEL" | "ADMIN_ENABLED" | "PAYLOAD_SECRET" | "OWNER_EMAIL">> {}
 }
 
 // Begin runtime types
