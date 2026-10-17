@@ -16,6 +16,7 @@ import { ContextFlows } from './collections/ContextFlows'
 import { ReadingSessions } from './collections/ReadingSessions'
 import { AuditLogs } from './collections/AuditLogs'
 import { rememberOwnerEmailBinding } from './lib/owner-email'
+import { rememberRateLimitBindings } from './lib/rate-limit'
 import { readBindingSecret, readNextPhase, resolvePayloadSecret } from './lib/payload-secret'
 import { createRedactingLogger } from './lib/redact-log'
 
@@ -35,6 +36,7 @@ const cloudflare =
     : await getCloudflareContext({ async: true })
 
 rememberOwnerEmailBinding(cloudflare.env)
+rememberRateLimitBindings(cloudflare.env)
 
 const secret = resolvePayloadSecret({
   envSecret: process.env.PAYLOAD_SECRET,

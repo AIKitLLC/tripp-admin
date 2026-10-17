@@ -2,8 +2,10 @@ import { getPayload, type Payload } from 'payload'
 import config from '@/payload.config'
 import { POST } from '@/app/api/tripp/seed/route'
 import { REST_POST } from '@payloadcms/next/routes'
+import { bootstrapOwner, resetOwnerBootstrapForTests } from '@/lib/bootstrap-owner'
 import { DECK_SIZE } from '@/lib/tripp/cards'
 import { SPREAD_CONFIGS } from '@/lib/tripp/spreads'
+import { verifyUserEmail } from '../helpers/verify-user'
 
 import { describe, it, beforeAll, expect } from 'vitest'
 
@@ -117,20 +119,28 @@ describe('POST /api/tripp/seed', () => {
   beforeAll(async () => {
     payload = await getPayload({ config: await config })
     await payload.delete({
+      collection: 'reading-sessions',
+      where: { id: { exists: true } },
+      overrideAccess: true,
+    })
+    await payload.delete({
       collection: 'users',
       where: { id: { exists: true } },
       overrideAccess: true,
     })
 
     const ownerEmail = configuredOwnerEmail()
-    const owner = await createUser(ownerEmail, 'viewer')
-    expect(owner.role).toBe('owner')
+    await resetOwnerBootstrapForTests(payload)
+    process.env.OWNER_BOOTSTRAP = '1'
+    expect(await bootstrapOwner(payload, { password })).toBe('created')
     ownerToken = await login(ownerEmail)
 
     const admin = await createUser(adminEmail, 'admin', ownerToken)
     expect(admin.role).toBe('admin')
+    await verifyUserEmail(payload, admin.id)
     const editor = await createUser(editorEmail, 'editor', ownerToken)
     expect(editor.role).toBe('editor')
+    await verifyUserEmail(payload, editor.id)
 
     adminToken = await login(adminEmail)
     editorToken = await login(editorEmail)

@@ -1,16 +1,16 @@
 # Status
 
-Last updated: 2026-10-17. Update this file in the same PR as every change. CI on this branch runs `pnpm run build` (`next build`), then `pnpm exec opennextjs-cloudflare build` with no Cloudflare token, then `node scripts/production-secret-smoke.mjs`. That smoke test starts the built Worker with `wrangler dev --local`, `NODE_ENV=production`, and no `PAYLOAD_SECRET`, and requires the production secret error. CI also rejects added lines in `ci/tsc-baseline.txt` and runs `node --test scripts/baseline-ratchet.test.mjs` to prove that rejection. CODEOWNERS requests Tony's review and blocks nothing until he requires code-owner review on `main`. Branch protection is still his decision.
+Last updated: 2026-10-17. Update this file in the same PR as every change. CI on this branch runs `pnpm run build` (`next build`), then `pnpm exec opennextjs-cloudflare build` with no Cloudflare token, then `node scripts/production-secret-smoke.mjs`. That smoke test starts the built Worker with `wrangler dev --local`, `NODE_ENV=production`, and no `PAYLOAD_SECRET`, and requires the production secret error. CI also rejects added lines in `ci/tsc-baseline.txt` and runs `node --test scripts/baseline-ratchet.test.mjs` to prove that rejection. `ignoreBuildErrors` stays on. `tsc --noEmit` reports 45 diagnostics, down from 49 on `main`, and CI fails if that set changes. CODEOWNERS requests Tony's review and blocks nothing until he requires code-owner review on `main`. Branch protection is still his decision.
 
-Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default branch is `main`. Latest commit on `main` is `39cf8c7` (merge of #1: dev standards, secret fix, seed auth, Users lockdown). This branch upgrades `next` and `eslint-config-next` from 16.4.0 to 16.4.1 for the 2026-10-14 Next.js advisories. Needs Security (Chuyên gia Bảo mật) PASS before merge. Do not deploy.
+Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default branch is `main`. Latest commit on `main` is `8566cdf` (PR #12, Next.js 16.4.1). This branch closes public signup, adds collection access, upgrades Payload to 3.91.0, and rate-limits auth and `/api/tripp/*`. Needs Security (Chuyên gia Bảo mật) PASS before merge. Do not deploy.
 
 ## GitHub now
 
 | Kind | State |
 | --- | --- |
-| Open issues | #3 secret, #4 template shell, #5 seed route, #6 `ignoreBuildErrors`, #7 reading engine, #8 static client (labels set, no milestone). #10 Users access lockdown (no labels, no milestone). No open issue matched the 2026-10-14 Next.js advisories. |
+| Open issues | #3 secret, #4 template shell, #5 seed route, #6 `ignoreBuildErrors`, #7 reading engine, #8 static client (labels set, no milestone). #10 Users access lockdown (no labels, no milestone). #13 security hardening (this PR). |
 | Closed issues | #2 standards. |
-| Open pull requests | [#12](https://github.com/AIKitLLC/tripp-admin/pull/12) upgrades Next.js 16.4.0 to 16.4.1. It does not close an issue. #1, #9, and #11 are merged. |
+| Open pull requests | [#14](https://github.com/AIKitLLC/tripp-admin/pull/14) closes #13. #12 is merged. #1, #9, and #11 are merged. |
 | Milestones | None. `M1 Foundation` and `M2 Reading service` are still only proposed below. |
 | Labels | GitHub defaults plus the `type:*`, `area:*`, `status:*`, and `priority:*` labels from the table below. None were deleted. |
 
@@ -18,7 +18,7 @@ Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default bra
 
 1. Milestones were not created, and no issue is assigned to one. #10 has no labels.
 2. The live reading and chat routes do not call the domain engine or Workers AI. See `docs/ARCHITECTURE.md`.
-3. A Payload secret is still in the tree on `main`. [#9](https://github.com/AIKitLLC/tripp-admin/pull/9) removes it. This file does not repeat the value. CI generates a throwaway `PAYLOAD_SECRET` and does not read that value.
+3. The Payload secret was removed from the tree. The old value is still in public git history, so it is treated as exposed. Rotation is pending: the live Worker `tripp-admin` (`tripp-admin.tuannx87.workers.dev`) runs on the partner TRIPP Cloudflare account, and the CTO's Wrangler login gets an authentication error (code 10000) on that account's Worker secrets, so it could not rotate `PAYLOAD_SECRET` on 2026-10-17. Tracked in #3. This file does not repeat the value. CI generates a throwaway `PAYLOAD_SECRET` and does not read that value.
 
 ## Rule
 

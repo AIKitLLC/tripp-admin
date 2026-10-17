@@ -13,7 +13,7 @@ A Next.js 16 App Router app, built for Cloudflare Workers with `@opennextjs/clou
 | frontend | `src/app/(frontend)` | Public Next page. `TrippChatClient` posts to `/api/tripp/reading` and `/api/tripp/chat`. Layout metadata still says "Payload Blank Template". |
 | payload-admin | `src/app/(payload)` | Payload admin shell (`/admin`) and generated REST (`/api/[...slug]`) plus GraphQL routes. |
 | tripp-http | `src/app/api/tripp`, `src/app/my-route` | HTTP adapters. `cards`, `spreads`, and `status` read the in-memory deck. `reading` draws cards and returns a fixed Vietnamese write-up. `chat` returns a fixed reflective reply. `seed` writes Cards and Spreads through Payload when those collections are empty. `my-route` is the template example and does not serve the product. |
-| cms | `src/collections`, `src/payload.config.ts`, `src/migrations`, `src/payload-types.ts` | Payload collections and D1 migrations. Collections: Users (roles owner, admin, editor, viewer), Media, Cards, Spreads, ContextFlows, ReadingSessions, AuditLogs. Config binds D1 and R2 and loads the collection modules. |
+| cms | `src/collections`, `src/payload.config.ts`, `src/migrations`, `src/payload-types.ts` | Payload collections and D1 migrations. Collections: Users (roles owner, admin, editor, viewer), Media, Cards, Spreads, ContextFlows, ReadingSessions, AuditLogs. Every collection sets create/read/update/delete access. Public signup is closed. The owner is created by `scripts/bootstrap-owner.ts`. Audit logs are append-only and admin-readable. Config binds D1, R2, and the auth/tripp rate limiters. |
 | domain | `src/lib/tripp` | Tarot catalog, conversation policy, prompt assembly, and the reading session engine. Public catalog entry points used today: `cards.ts`, `spreads.ts`, `seed-data.ts`. Intended session entry point, not imported by any route: `reading-api.ts` (`readReading`, `handleReadingAction`, `handleClientToolAction`). |
 | static-client | `public/tripp` | Static TRIPP chat (`app.js`, `index.html`) and studio (`admin.js`, `admin.html`). Not the Next page at `/`. |
 | platform | `wrangler.jsonc`, `open-next.config.ts`, `next.config.ts`, `src/empty-shim.ts`, `cloudflare-env.d.ts` | Worker name `tripp-admin`, bindings, OpenNext config, and the drizzle-kit shim so the Worker build can resolve Payload's optional dependency. `cloudflare-env.d.ts` is generated. |
@@ -65,6 +65,8 @@ Declared in `wrangler.jsonc` and `src/payload.config.ts`:
 | `D1` | Cloudflare D1 database `tripp-admin` | Payload via `sqliteD1Adapter` in `src/payload.config.ts`. Migrations in `src/migrations`. |
 | `R2` | Cloudflare R2 bucket `tripp-admin` | `@payloadcms/storage-r2` for the Media collection. |
 | `AI` | Cloudflare Workers AI | Binding exists. `REPLY_MODEL` var is `@cf/qwen/qwen3-30b-a3b-fp8`. `reply-provider.ts` can call that model, or `openai/gpt-6-luna` through an AI Gateway when `AI_GATEWAY_ID` is set. No route calls it. |
+| `AUTH_RATE_LIMITER` | Workers Rate Limiting | 10 requests / 60 seconds. Login, forgot-password, reset-password, and anonymous user create. |
+| `TRIPP_RATE_LIMITER` | Workers Rate Limiting | 60 requests / 60 seconds. `/api/tripp/*`. |
 | `ASSETS` | Worker assets from `.open-next/assets` | OpenNext static assets. |
 | `WORKER_SELF_REFERENCE` | This Worker | OpenNext self-reference. |
 

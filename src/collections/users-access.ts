@@ -1,25 +1,17 @@
 import {
+  APIError,
   Forbidden,
   type Access,
   type CollectionBeforeChangeHook,
+  type CollectionBeforeOperationHook,
   type FieldAccess,
   type PayloadRequest,
 } from 'payload'
 
-import { isOwnerEmail, logMissingOwnerEmail, normalizeEmail, readOwnerEmail } from '@/lib/owner-email'
+import { enforceRateLimit } from '@/lib/rate-limit'
+import { isOwnerEmail, normalizeEmail } from '@/lib/owner-email'
 
-type UserRole = 'owner' | 'admin' | 'editor' | 'viewer'
-
-function actorRole(user: PayloadRequest['user']): UserRole | undefined {
-  if (!user || !('role' in user)) return undefined
-  const role = user.role
-  if (role === 'owner' || role === 'admin' || role === 'editor' || role === 'viewer') return role
-  return undefined
-}
-
-function isPrivileged(role: UserRole | undefined): boolean {
-  return role === 'owner' || role === 'admin'
-}
+import { actorRole, isAdminRole } from './collection-access'
 
 function isStaffRole(role: unknown): role is 'editor' | 'viewer' {
   return role === 'editor' || role === 'viewer'
@@ -54,26 +46,29 @@ function ownRecordOrPrivileged(req: PayloadRequest): boolean | { id: { equals: n
   const user = req.user
   const role = actorRole(user)
   if (!user || !role) return false
-  if (isPrivileged(role)) return true
+  if (isAdminRole(role)) return true
   return { id: { equals: user.id } }
 }
 
-function assignCreatedUserRole(
+async function assignCreatedUserRole(
   data: Record<string, unknown>,
   req: PayloadRequest,
-): Record<string, unknown> {
-  if (isOwnerEmail(data.email)) {
-    return { ...data, role: 'owner' }
+): Promise<Record<string, unknown>> {
+  if (req.context?.ownerBootstrap === true) {
+    if (!isOwnerEmail(data.email)) throw new Forbidden()
+    if ((await countOwners(req)) > 0) throw new Forbidden()
+    return { ...data, role: 'owner', _verified: true }
   }
 
-  if (!readOwnerEmail()) logMissingOwnerEmail(req)
-
+  // Public signup and first-register both arrive with no user. Server fixtures pass provisionUser.
   if (!req.user) {
-    return { ...data, role: 'viewer' }
+    if (req.context?.provisionUser !== true) throw new Forbidden()
+    if (data.role === 'owner') throw new Forbidden()
+    return data
   }
 
   if (data.role === 'owner') throw new Forbidden()
-  return data
+  return { ...data, _verified: false }
 }
 
 async function guardRoleOnUpdate(
@@ -125,10 +120,7 @@ export const usersUpdateAccess: Access = ({ req }) => {
   return { id: { equals: user.id } }
 }
 
-export const usersCreateAccess: Access = ({ req }) => {
-  if (!req.user) return true
-  return isPrivileged(actorRole(req.user))
-}
+export const usersCreateAccess: Access = ({ req }) => isAdminRole(actorRole(req.user))
 
 export const usersDeleteAccess: Access = async ({ req }) => {
   const role = actorRole(req.user)
@@ -139,7 +131,7 @@ export const usersDeleteAccess: Access = async ({ req }) => {
 }
 
 export const roleFieldCreateAccess: FieldAccess = ({ data, req }) => {
-  if (!req.user || isOwnerEmail(data?.email)) return true
+  if (req.context?.ownerBootstrap === true) return true
 
   const role = actorRole(req.user)
   if (role === 'owner') {
@@ -157,7 +149,7 @@ export const roleFieldUpdateAccess: FieldAccess = async ({ data, doc, id, req })
   const nextRole = data && 'role' in data ? data.role : undefined
   const currentRole = doc && 'role' in doc ? doc.role : undefined
   if (nextRole === undefined || nextRole === currentRole) {
-    return isPrivileged(actorRole(req.user))
+    return isAdminRole(actorRole(req.user))
   }
 
   if (currentRole === 'owner' && nextRole !== 'owner' && (await countOwners(req)) <= 1) {
@@ -187,9 +179,22 @@ export const enforceUserPrivileges: CollectionBeforeChangeHook = async ({
   }
 
   if (operation === 'update') {
+    if (data?._verified === true && originalDoc?._verified !== true) throw new Forbidden()
     await guardRoleOnUpdate(data, originalDoc, req)
     guardProtectedRecordFromAdmin(data, originalDoc, req)
   }
 
   return data
+}
+
+const LIMITED_AUTH_OPERATIONS = new Set(['login', 'forgotPassword', 'resetPassword'])
+
+export const rateLimitUserAuth: CollectionBeforeOperationHook = async ({ args, operation, req }) => {
+  const limitThis = LIMITED_AUTH_OPERATIONS.has(operation) || (operation === 'create' && !req.user)
+  if (!limitThis) return args
+
+  const headers = req.headers instanceof Headers ? req.headers : new Headers()
+  const blocked = await enforceRateLimit(new Request('http://localhost/api/users', { headers }), 'auth')
+  if (blocked) throw new APIError('Too many requests', 429, undefined, true)
+  return args
 }

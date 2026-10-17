@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { editorWrite, publicRead } from './collection-access'
+
 export const Cards: CollectionConfig = {
   slug: 'cards',
   admin: {
@@ -7,7 +9,10 @@ export const Cards: CollectionConfig = {
     defaultColumns: ['cardId', 'name', 'english', 'arcana', 'glyph'],
   },
   access: {
-    read: () => true, // Cho phép public đọc danh sách lá bài
+    create: editorWrite,
+    read: publicRead,
+    update: editorWrite,
+    delete: editorWrite,
   },
   fields: [
     {

@@ -4,7 +4,7 @@
 #   pnpm wrangler secret put PAYLOAD_SECRET
 PAYLOAD_SECRET=local-dev-only-placeholder
 
-# Signup with this email becomes the owner. Every other self-signup is a viewer.
+# Email of the account created by `pnpm bootstrap:owner`. Public signup cannot claim it.
 # Production: pnpm wrangler secret put OWNER_EMAIL
 # Placeholder only. Never commit a real address.
 OWNER_EMAIL=owner@example.com
