@@ -1,10 +1,34 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+
+import { actorRole, adminOrOwn, authenticated, isAdminRole } from './collection-access'
+
+const stampReadingSessionUser: CollectionBeforeChangeHook = ({ data, operation, req }) => {
+  if (!data) return data
+  const role = actorRole(req.user)
+  if (operation === 'create' && req.user && !isAdminRole(role)) {
+    return { ...data, user: req.user.id }
+  }
+  if (operation === 'update' && !isAdminRole(role) && 'user' in data) {
+    const { user: _user, ...rest } = data
+    return rest
+  }
+  return data
+}
 
 export const ReadingSessions: CollectionConfig = {
   slug: 'reading-sessions',
   admin: {
     useAsTitle: 'sessionId',
     defaultColumns: ['sessionId', 'spreadId', 'turns', 'model', 'status', 'createdAt'],
+  },
+  access: {
+    create: authenticated,
+    read: adminOrOwn('user'),
+    update: adminOrOwn('user'),
+    delete: adminOrOwn('user'),
+  },
+  hooks: {
+    beforeChange: [stampReadingSessionUser],
   },
   fields: [
     {
@@ -81,6 +105,15 @@ export const ReadingSessions: CollectionConfig = {
       type: 'text',
       admin: {
         description: 'IP nguồn (ẩn danh/hash)',
+      },
+    },
+    {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'users',
+      index: true,
+      admin: {
+        description: 'Account that owns this session',
       },
     },
   ],

@@ -40,6 +40,24 @@
       "service": "tripp-admin",
     },
   ],
+  "ratelimits": [
+    {
+      "name": "AUTH_RATE_LIMITER",
+      "namespace_id": "847201",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    },
+    {
+      "name": "TRIPP_RATE_LIMITER",
+      "namespace_id": "847202",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "R2",

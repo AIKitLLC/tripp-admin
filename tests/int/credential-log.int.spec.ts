@@ -45,14 +45,22 @@ describe('credential logging', () => {
   it('does not log password material during create, login, or password change', async () => {
     const output = captureOutput()
     try {
-      const created = await restPost(
+      const rejected = await restPost(
         jsonRequest('/api/users', { email, password }),
         slugArgs(['users']),
       )
-      expect(created.status).toBe(201)
-      const createdBody = (await created.json()) as { doc?: { id?: number } }
-      const id = createdBody.doc?.id
-      if (typeof id !== 'number') throw new Error('create did not return a user id')
+      expect(rejected.status).toBe(403)
+      const rejectedBody = JSON.stringify(await rejected.json())
+      expect(rejectedBody).not.toContain(password)
+
+      const created = await payload.create({
+        collection: 'users',
+        data: { email, password, role: 'viewer', _verified: true },
+        overrideAccess: true,
+        disableVerificationEmail: true,
+        context: { provisionUser: true },
+      })
+      const id = created.id
 
       const loggedIn = await restPost(
         jsonRequest('/api/users/login', { email, password }),

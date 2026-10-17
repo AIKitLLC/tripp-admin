@@ -1,10 +1,31 @@
-import type { CollectionConfig } from 'payload'
+import { Forbidden, type CollectionBeforeChangeHook, type CollectionBeforeDeleteHook, type CollectionConfig } from 'payload'
+
+import { adminOnly, denyAll } from './collection-access'
+
+const rejectAuditChange: CollectionBeforeChangeHook = ({ data, operation, req }) => {
+  if (operation === 'update' || req.context?.auditAppend !== true) throw new Forbidden()
+  return data
+}
+
+const rejectAuditDelete: CollectionBeforeDeleteHook = () => {
+  throw new Forbidden()
+}
 
 export const AuditLogs: CollectionConfig = {
   slug: 'audit-logs',
   admin: {
     useAsTitle: 'action',
     defaultColumns: ['action', 'actor', 'target', 'createdAt'],
+  },
+  access: {
+    create: denyAll,
+    read: adminOnly,
+    update: denyAll,
+    delete: denyAll,
+  },
+  hooks: {
+    beforeChange: [rejectAuditChange],
+    beforeDelete: [rejectAuditDelete],
   },
   fields: [
     {

@@ -1,9 +1,14 @@
 import type { CollectionConfig } from 'payload'
 
+import { editorWrite, publicRead } from './collection-access'
+
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    read: () => true,
+    create: editorWrite,
+    read: publicRead,
+    update: editorWrite,
+    delete: editorWrite,
   },
   fields: [
     {

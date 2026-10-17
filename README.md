@@ -64,7 +64,7 @@ cp .dev.vars.example .dev.vars
 
 Giá trị trong `.dev.vars.example` chỉ dùng cho máy local. Production từ chối secret thiếu, là placeholder, hoặc ngắn hơn 32 ký tự.
 
-`OWNER_EMAIL` là email cấu hình sẵn, không commit. User tạo với đúng email đó (không phân biệt hoa thường, đã trim) nhận vai trò `owner`. Đăng ký công khai và form user đầu tiên không tạo `owner` hoặc `admin`; mọi tài khoản tự tạo khác là `viewer`. Nếu production thiếu `OWNER_EMAIL`, app vẫn chạy, không tạo owner, và ghi log.
+`OWNER_EMAIL` là email cấu hình sẵn, không commit. Đăng ký công khai và form user đầu tiên đều đóng. Tài khoản `owner` chỉ được tạo bằng lệnh bootstrap một lần (xem bước 5). Email đó không tự trở thành owner khi ai đó gửi form đăng ký.
 
 ### 3. Chạy Development Server
 
@@ -83,7 +83,7 @@ pnpm dev
 
 ### 4. Khởi tạo Dữ liệu Ban đầu (Seed Cards & Spreads)
 
-Tài khoản `owner` là user được tạo với đúng `OWNER_EMAIL`. Owner đó tạo `admin`. Đăng nhập Payload rồi gọi seed. Endpoint từ chối khách (401) và tài khoản `editor` / `viewer` (403). Gọi lại không tạo thêm bản ghi nếu Cards hoặc Spreads đã có dữ liệu. Production vẫn bật route này: lần nạp đầu cho D1 trống dùng cùng đường đó, sau khi owner đã tạo admin. Không thêm cờ env riêng.
+Tài khoản `owner` là user do lệnh bootstrap tạo với đúng `OWNER_EMAIL`. Owner đó tạo `admin`. Đăng nhập Payload rồi gọi seed. Endpoint từ chối khách (401) và tài khoản `editor` / `viewer` (403). Gọi lại không tạo thêm bản ghi nếu Cards hoặc Spreads đã có dữ liệu. Production vẫn bật route này: lần nạp đầu cho D1 trống dùng cùng đường đó, sau khi owner đã tạo admin. Không thêm cờ env riêng.
 
 ```bash
 curl -X POST http://localhost:3000/api/users/login \
@@ -135,13 +135,14 @@ Dán giá trị mới khi Wrangler hỏi. Không dùng lại giá trị cũ. Xoa
 
 `pnpm run deploy:database` chạy migrate với `NODE_ENV=production`, nên process đó cũng cần `PAYLOAD_SECRET` hợp lệ trong environment (không commit). Secret trên Worker không tự có trong shell.
 
-5. Đặt `OWNER_EMAIL`. Không commit email này. User tạo với đúng email đó trở thành owner; mọi đăng ký khác là viewer.
+5. Đặt `OWNER_EMAIL`, rồi tạo owner một lần từ máy local. Không commit email hay mật khẩu. Đăng ký công khai đóng. Lệnh từ chối nếu `OWNER_BOOTSTRAP` khác `1`, và sau lần tạo thành công thì đóng vĩnh viễn (kể cả khi dòng owner bị xóa).
 
 ```bash
 pnpm wrangler secret put OWNER_EMAIL
+OWNER_BOOTSTRAP=1 OWNER_EMAIL=you@example.com OWNER_PASSWORD='set-a-password' pnpm bootstrap:owner
 ```
 
-Đăng ký công khai vẫn mở. Ngay sau khi secret được đặt, tạo tài khoản với đúng email đó trước khi chia sẻ URL. Người đăng ký trùng email trước sẽ thành owner và chặn đăng ký sau (email là duy nhất). Đổi email của một viewer sang địa chỉ đó không cấp role owner, nhưng cũng chiếm địa chỉ và chặn đăng ký owner.
+`OWNER_PASSWORD` chỉ nằm trong lệnh đó. Không ghi vào `.dev.vars` và không đặt lên Worker. User do admin tạo sau đó phải xác minh email trước khi đăng nhập.
 
 6. Chạy migration và deploy:
 ```bash

@@ -1,10 +1,18 @@
 import type { CollectionConfig } from 'payload'
 
+import { adminOnly, editorWrite } from './collection-access'
+
 export const ContextFlows: CollectionConfig = {
   slug: 'context-flows',
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'branch', 'status', 'revision', 'updatedAt'],
+  },
+  access: {
+    create: editorWrite,
+    read: editorWrite,
+    update: editorWrite,
+    delete: adminOnly,
   },
   fields: [
     {

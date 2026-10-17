@@ -147,6 +147,9 @@ export interface User {
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  _verified?: boolean | null;
+  _verificationToken?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
@@ -166,6 +169,7 @@ export interface User {
 export interface Media {
   id: number;
   alt: string;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -363,6 +367,10 @@ export interface ReadingSession {
    * IP nguồn (ẩn danh/hash)
    */
   clientIp?: string | null;
+  /**
+   * Account that owns this session
+   */
+  user?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -510,6 +518,9 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
+  resetPasswordRequestedAt?: T;
+  _verified?: T;
+  _verificationToken?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -526,6 +537,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -602,6 +614,7 @@ export interface ReadingSessionsSelect<T extends boolean = true> {
   status?: T;
   language?: T;
   clientIp?: T;
+  user?: T;
   updatedAt?: T;
   createdAt?: T;
 }

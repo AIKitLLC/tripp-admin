@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import { internalServerError } from '@/lib/http-error'
+import { withTrippRoute } from '@/lib/rate-limit'
 import { getInitialCardsData, getInitialSpreadsData } from '@/lib/tripp/seed-data'
 
 function userHasAdminRights(role: unknown): boolean {
   return role === 'owner' || role === 'admin'
 }
 
-export async function POST(request: Request) {
+export const POST = withTrippRoute(async function POST(request: Request) {
   try {
     const payloadConfig = await config
     const payload = await getPayload({ config: payloadConfig })
@@ -62,7 +64,6 @@ export async function POST(request: Request) {
       seededSpreads: seededSpreadsCount,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Lỗi khi seed dữ liệu'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return internalServerError(error)
   }
-}
+})

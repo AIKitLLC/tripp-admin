@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { editorWrite, publicRead } from './collection-access'
+
 export const Spreads: CollectionConfig = {
   slug: 'spreads',
   admin: {
@@ -7,7 +9,10 @@ export const Spreads: CollectionConfig = {
     defaultColumns: ['spreadId', 'name', 'cardCount', 'description'],
   },
   access: {
-    read: () => true,
+    create: editorWrite,
+    read: publicRead,
+    update: editorWrite,
+    delete: editorWrite,
   },
   fields: [
     {

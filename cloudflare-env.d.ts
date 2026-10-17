@@ -12,6 +12,8 @@ interface __BaseEnv_CloudflareEnv {
 	PAYLOAD_SECRET: string;
 	OWNER_EMAIL: string;
 	WORKER_SELF_REFERENCE: Fetcher /* tripp-admin */;
+	AUTH_RATE_LIMITER: RateLimit;
+	TRIPP_RATE_LIMITER: RateLimit;
 }
 declare namespace Cloudflare {
 	interface Env extends __BaseEnv_CloudflareEnv {}

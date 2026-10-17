@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 
-export async function POST(request: Request) {
+import { internalServerError } from '@/lib/http-error'
+import { withTrippRoute } from '@/lib/rate-limit'
+
+export const POST = withTrippRoute(async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       sessionId?: string
@@ -28,7 +31,9 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Lỗi xử lý tin nhắn'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 })
+    }
+    return internalServerError(error)
   }
-}
+})

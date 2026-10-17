@@ -1,7 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 
 import { getPayload, type Payload } from 'payload'
-import { DUPLICATE_EMAIL_MESSAGE } from '@/collections/unique-email-conflict'
 import config from '@/payload.config'
 import {
   GRAPHQL_POST,
@@ -13,7 +12,10 @@ import {
 
 import { describe, it, beforeAll, expect } from 'vitest'
 
+import { bootstrapOwner, resetOwnerBootstrapForTests } from '@/lib/bootstrap-owner'
+
 import { captureOutput } from '../helpers/capture-output'
+import { verifyUserEmail } from '../helpers/verify-user'
 
 const password = 'test-password'
 const replacementPassword = 'replacement-password'
@@ -111,6 +113,11 @@ async function storedUser(id: number): Promise<StoredUser> {
 }
 
 async function wipeUsers(): Promise<void> {
+  await payload.delete({
+    collection: 'reading-sessions',
+    where: { id: { exists: true } },
+    overrideAccess: true,
+  })
   await payload.delete({
     collection: 'users',
     where: { id: { exists: true } },
@@ -256,7 +263,14 @@ async function deleteUser(id: number, token: string): Promise<Response> {
 async function requireCreatedUser(email: string, role: UserRole): Promise<StoredUser> {
   const created = await createUser(email, role, ownerToken)
   if (!created.user) throw new Error(`owner could not create ${email}`)
+  await verifyUserEmail(payload, created.user.id)
   return created.user
+}
+
+async function resetOwnerFixture(): Promise<void> {
+  await wipeUsers()
+  await resetOwnerBootstrapForTests(payload)
+  process.env.OWNER_BOOTSTRAP = '1'
 }
 
 async function storedRecord(id: number) {
@@ -282,104 +296,38 @@ describe('Users collection access', () => {
     payload = await getPayload({ config: await config })
   }, 30_000)
 
-  it('gives OWNER_EMAIL the owner role and leaves every other signup a viewer', async () => {
-    await wipeUsers()
+  it('closes public signup and does not grant owner from OWNER_EMAIL', async () => {
+    await resetOwnerFixture()
     const ownerEmail = configuredOwnerEmail()
 
     const firstForm = await restPost(
       jsonRequest('/api/users/first-register', {
-        email: 'first-form@example.com',
+        email: mixedCaseEmail(ownerEmail),
         password,
-        role: 'admin',
+        role: 'owner',
       }),
       slugArgs(['users', 'first-register']),
     )
-    expect(firstForm.status).toBe(200)
-    const firstUser = userFromResponse(await readJson(firstForm))
-    expect(firstUser.role).toBe('viewer')
-    expect((await storedUser(firstUser.id)).role).toBe('viewer')
+    expect(firstForm.status).toBe(403)
 
-    await wipeUsers()
-
-    const emptyDatabase = await createUser('empty-db-viewer@example.com', 'owner')
-    expect(emptyDatabase.status).toBe(201)
-    expect(emptyDatabase.user?.role).toBe('viewer')
-    expect((await storedUser(emptyDatabase.user!.id)).role).toBe('viewer')
-
-    await wipeUsers()
-
-    const created = await createUser(mixedCaseEmail(ownerEmail), 'viewer')
-    expect(created.status).toBe(201)
-    owner = created.user as StoredUser
-    expect(owner.role).toBe('owner')
-    expect(owner.email).toBe(ownerEmail)
-    expect((await storedUser(owner.id)).role).toBe('owner')
-
-    const later = await createUser('later-viewer@example.com', 'admin')
-    expect(later.status).toBe(201)
-    expect(later.user?.role).toBe('viewer')
-    expect((await storedUser(later.user!.id)).role).toBe('viewer')
-  }, 30_000)
-
-  it('keeps a single owner when empty-database signups run together', async () => {
-    await wipeUsers()
-    const ownerEmail = configuredOwnerEmail()
-    const signups = [
-      { email: mixedCaseEmail(ownerEmail), role: 'editor' as const },
-      { email: 'race-owner-claim@example.com', role: 'owner' as const },
-      { email: 'race-admin-claim@example.com', role: 'admin' as const },
-      { email: 'race-editor@example.com', role: 'editor' as const },
-      { email: 'race-viewer@example.com', role: 'viewer' as const },
-      { email: 'race-omitted@example.com' },
-    ]
-
-    const responses = await withUsersHttpServer((baseUrl) =>
-      Promise.all(signups.map((signup) => postSignupOverHttp(baseUrl, signup.email, signup.role))),
-    )
-
-    for (const response of responses) {
-      expect(response.status).toBe(201)
-    }
+    const signup = await createUser(ownerEmail, 'owner')
+    expect(signup.status).toBe(403)
 
     const users = await payload.find({
       collection: 'users',
       overrideAccess: true,
-      limit: 20,
+      limit: 10,
     })
-    const owners = users.docs.filter((user) => user.role === 'owner')
-    expect(owners).toHaveLength(1)
-    expect(owners[0]?.email).toBe(ownerEmail)
-    for (const user of users.docs) {
-      if (user.email !== ownerEmail) expect(user.role).toBe('viewer')
-    }
+    expect(users.docs).toHaveLength(0)
+    expect(users.docs.some((user) => user.role === 'owner')).toBe(false)
   }, 30_000)
 
-  it('lets one of two simultaneous OWNER_EMAIL signups win the unique email', async () => {
-    await wipeUsers()
+  it('creates one owner from the bootstrap command and then closes', async () => {
+    await resetOwnerFixture()
     const ownerEmail = configuredOwnerEmail()
 
-    const output = captureOutput()
-    let responses: { status: number; body: Record<string, unknown> }[]
-    try {
-      responses = await withUsersHttpServer((baseUrl) =>
-        Promise.all([
-          postSignupOverHttp(baseUrl, ownerEmail),
-          postSignupOverHttp(baseUrl, mixedCaseEmail(ownerEmail)),
-        ]),
-      )
-    } finally {
-      output.stop()
-    }
-    const logged = output.text()
-    expect(logged).not.toContain(password)
-    expect(logged).not.toMatch(/params:\s*(?!\[redacted\])\S/)
-
-    const created = responses.filter((response) => response.status === 201)
-    const rejected = responses.filter((response) => response.status !== 201)
-    expect(created).toHaveLength(1)
-    expect(rejected).toHaveLength(1)
-    expect(rejected[0]?.status).toBe(409)
-    expect(JSON.stringify(rejected[0]?.body)).toContain(DUPLICATE_EMAIL_MESSAGE)
+    expect(await bootstrapOwner(payload, { password })).toBe('created')
+    expect(await bootstrapOwner(payload, { password })).toBe('closed')
 
     const users = await payload.find({
       collection: 'users',
@@ -387,20 +335,97 @@ describe('Users collection access', () => {
       limit: 10,
     })
     const owners = users.docs.filter((user) => user.role === 'owner')
-    expect(users.docs).toHaveLength(1)
     expect(owners).toHaveLength(1)
     expect(owners[0]?.email).toBe(ownerEmail)
+
+    const output = captureOutput()
+    let responses: { status: number; body: Record<string, unknown> }[]
+    try {
+      responses = await withUsersHttpServer((baseUrl) =>
+        Promise.all([
+          postSignupOverHttp(baseUrl, ownerEmail, 'owner'),
+          postSignupOverHttp(baseUrl, mixedCaseEmail(ownerEmail), 'admin'),
+          postSignupOverHttp(baseUrl, 'race-viewer@example.com', 'viewer'),
+        ]),
+      )
+    } finally {
+      output.stop()
+    }
+
+    expect(output.text()).not.toContain(password)
+    expect(output.text()).not.toMatch(/params:\s*(?!\[redacted\])\S/)
+    for (const response of responses) {
+      expect(response.status).toBe(403)
+      expect(JSON.stringify(response.body)).not.toContain(password)
+    }
+
+    const after = await payload.find({
+      collection: 'users',
+      overrideAccess: true,
+      limit: 10,
+    })
+    expect(after.docs).toHaveLength(1)
+    expect(after.docs[0]?.role).toBe('owner')
+  }, 30_000)
+
+  it('rejects a duplicate email without logging the password', async () => {
+    await resetOwnerFixture()
+    expect(await bootstrapOwner(payload, { password })).toBe('created')
+    const session = await login(configuredOwnerEmail(), password)
+    if (!session.token) throw new Error('owner login did not return a token')
+
+    const first = await createUser('duplicate-email@example.com', 'viewer', session.token)
+    expect(first.status).toBe(201)
+    if (!first.user) throw new Error('owner could not create the first duplicate-email user')
+    await verifyUserEmail(payload, first.user.id)
+
+    const output = captureOutput()
+    let status = 0
+    let body = ''
+    try {
+      const response = await restPost(
+        jsonRequest(
+          '/api/users',
+          { email: 'duplicate-email@example.com', password, role: 'editor' },
+          session.token,
+        ),
+        slugArgs(['users']),
+      )
+      status = response.status
+      body = JSON.stringify(await response.json())
+    } finally {
+      output.stop()
+    }
+    expect(status).toBe(400)
+    expect(body).not.toContain(password)
+    const stored = await payload.find({
+      collection: 'users',
+      where: { email: { equals: 'duplicate-email@example.com' } },
+      overrideAccess: true,
+    })
+    expect(stored.totalDocs).toBe(1)
+    expect(output.text()).not.toContain(password)
+    expect(output.text()).not.toMatch(/params:\s*(?!\[redacted\])\S/)
   }, 30_000)
 
   describe('authenticated rules', () => {
     beforeAll(async () => {
-      await wipeUsers()
+      await resetOwnerFixture()
       const ownerEmail = configuredOwnerEmail()
-      const createdOwner = await createUser(ownerEmail, 'viewer')
-      if (createdOwner.status !== 201 || createdOwner.user?.role !== 'owner') {
-        throw new Error('OWNER_EMAIL signup did not create an owner')
+      if ((await bootstrapOwner(payload, { password })) !== 'created') {
+        throw new Error('owner bootstrap did not create an owner')
       }
-      owner = createdOwner.user
+      const owners = await payload.find({
+        collection: 'users',
+        where: { email: { equals: ownerEmail } },
+        overrideAccess: true,
+        limit: 1,
+      })
+      const createdOwner = owners.docs[0]
+      if (!createdOwner || createdOwner.role !== 'owner') {
+        throw new Error('owner bootstrap did not store the owner role')
+      }
+      owner = { id: createdOwner.id, email: createdOwner.email, role: createdOwner.role }
 
       const ownerSession = await login(ownerEmail, password)
       if (!ownerSession.token) throw new Error('owner login did not return a token')
@@ -425,6 +450,11 @@ describe('Users collection access', () => {
       editor = createdEditor.user
       viewer = createdViewer.user
       promotee = createdPromotee.user
+      await verifyUserEmail(payload, admin.id)
+      await verifyUserEmail(payload, secondAdmin.id)
+      await verifyUserEmail(payload, editor.id)
+      await verifyUserEmail(payload, viewer.id)
+      await verifyUserEmail(payload, promotee.id)
       expect(admin.role).toBe('admin')
       expect(secondAdmin.role).toBe('admin')
       expect(editor.role).toBe('editor')
