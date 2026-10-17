@@ -10,7 +10,7 @@ Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default bra
 | --- | --- |
 | Open issues | #3 secret, #4 template shell, #5 seed route, #6 `ignoreBuildErrors`, #7 reading engine, #8 static client (labels set, no milestone). #10 Users access lockdown (no labels, no milestone). #13 security hardening (this PR). |
 | Closed issues | #2 standards. |
-| Open pull requests | This branch closes #13. #12 is merged. #1, #9, and #11 are merged. |
+| Open pull requests | [#14](https://github.com/AIKitLLC/tripp-admin/pull/14) closes #13. #12 is merged. #1, #9, and #11 are merged. |
 | Milestones | None. `M1 Foundation` and `M2 Reading service` are still only proposed below. |
 | Labels | GitHub defaults plus the `type:*`, `area:*`, `status:*`, and `priority:*` labels from the table below. None were deleted. |
 
