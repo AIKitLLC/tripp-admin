@@ -18,7 +18,7 @@ Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default bra
 
 1. Milestones were not created, and no issue is assigned to one. #10 has no labels.
 2. The live reading and chat routes do not call the domain engine or Workers AI. See `docs/ARCHITECTURE.md`.
-3. A Payload secret is still in the tree on `main`. [#9](https://github.com/AIKitLLC/tripp-admin/pull/9) removes it. This file does not repeat the value. CI generates a throwaway `PAYLOAD_SECRET` and does not read that value.
+3. The Payload secret was removed from the tree. The old value is still in public git history, so it is treated as exposed. Rotation is pending: the live Worker `tripp-admin` (`tripp-admin.tuannx87.workers.dev`) runs on the partner TRIPP Cloudflare account, and the CTO's Wrangler login gets an authentication error (code 10000) on that account's Worker secrets, so it could not rotate `PAYLOAD_SECRET` on 2026-10-17. Tracked in #3. This file does not repeat the value. CI generates a throwaway `PAYLOAD_SECRET` and does not read that value.
 
 ## Rule
 
