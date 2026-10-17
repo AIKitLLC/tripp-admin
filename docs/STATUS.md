@@ -10,7 +10,7 @@ Data below is from `gh` against `AIKitLLC/tripp-admin` on that date. Default bra
 | --- | --- |
 | Open issues | #3 secret, #4 template shell, #5 seed route, #6 `ignoreBuildErrors`, #7 reading engine, #8 static client (labels set, no milestone). #10 Users access lockdown (no labels, no milestone). No open issue matched the 2026-10-14 Next.js advisories. |
 | Closed issues | #2 standards. |
-| Open pull requests | Next.js 16.4.1 security patch (this branch). #1, #9, and #11 are merged. |
+| Open pull requests | [#12](https://github.com/AIKitLLC/tripp-admin/pull/12) upgrades Next.js 16.4.0 to 16.4.1. It does not close an issue. #1, #9, and #11 are merged. |
 | Milestones | None. `M1 Foundation` and `M2 Reading service` are still only proposed below. |
 | Labels | GitHub defaults plus the `type:*`, `area:*`, `status:*`, and `priority:*` labels from the table below. None were deleted. |
 
