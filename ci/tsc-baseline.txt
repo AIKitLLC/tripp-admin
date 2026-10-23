@@ -3,9 +3,6 @@ src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'ok' does not exist on ty
 src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'ok' does not exist on type 'unknown'.
 src/app/(frontend)/TrippChatClient.tsx TS2339 Property 'reply' does not exist on type 'unknown'.
 src/app/(frontend)/TrippChatClient.tsx TS2345 Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<ReadingResponse>'.
-src/app/(payload)/api/[...slug]/route.ts TS2882 Cannot find module or type declarations for side-effect import of '@payloadcms/next/css'.
-src/app/(payload)/api/graphql-playground/route.ts TS2882 Cannot find module or type declarations for side-effect import of '@payloadcms/next/css'.
-src/app/(payload)/layout.tsx TS2882 Cannot find module or type declarations for side-effect import of '@payloadcms/next/css'.
 src/lib/tripp/context-flow.ts TS2339 Property 'dataOrder' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
 src/lib/tripp/context-flow.ts TS2339 Property 'includeAssistant' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
 src/lib/tripp/context-flow.ts TS2339 Property 'includeReadingSummary' does not exist on type '(NodeBase & { kind: LockedKind; locked: true; }) | (NodeBase & { kind: "history"; locked: false; } & ContextFeedingSettings)'.
@@ -46,4 +43,3 @@ src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is
 src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
 src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
 src/lib/tripp/reading-output.ts TS2345 Argument of type 'ReplyTextInspection' is not assignable to parameter of type '{ accepted: false; reason: "length" | "empty" | "controls"; }'.
-tests/helpers/seedUser.ts TS2345 Argument of type '{ collection: "users"; data: { email: string; password: string; }; overrideAccess: true; }' is not assignable to parameter of type 'Options<"users", UsersSelect<false> | UsersSelect<true>>'.

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { drawCards, cardById, type Card } from '@/lib/tripp/cards'
 import { getSpreadConfig } from '@/lib/tripp/spreads'
+import { internalServerError } from '@/lib/http-error'
+import { withTrippRoute } from '@/lib/rate-limit'
 
-export async function POST(request: Request) {
+export const POST = withTrippRoute(async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       question?: string
@@ -74,7 +76,9 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Lỗi xử lý trải bài'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 })
+    }
+    return internalServerError(error)
   }
-}
+})

@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { reportDuplicateEmailConflict } from './unique-email-conflict'
 import {
   enforceUserPrivileges,
+  rateLimitUserAuth,
   roleFieldCreateAccess,
   roleFieldUpdateAccess,
   usersCreateAccess,
@@ -17,7 +18,9 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
     defaultColumns: ['email', 'role', 'status', 'createdAt'],
   },
-  auth: true,
+  auth: {
+    verify: true,
+  },
   access: {
     read: usersReadAccess,
     create: usersCreateAccess,
@@ -27,6 +30,7 @@ export const Users: CollectionConfig = {
   hooks: {
     afterError: [reportDuplicateEmailConflict],
     beforeChange: [enforceUserPrivileges],
+    beforeOperation: [rateLimitUserAuth],
   },
   fields: [
     {

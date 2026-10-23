@@ -23,11 +23,12 @@ export async function seedTestUser(): Promise<void> {
     overrideAccess: true,
   })
 
-  // Create fresh test user
   await payload.create({
     collection: 'users',
-    data: testUser,
+    data: { ...testUser, role: 'editor', _verified: true },
     overrideAccess: true,
+    disableVerificationEmail: true,
+    context: { provisionUser: true },
   })
 }
 
